@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera, Save, X, ChevronDown } from 'lucide-react';
-import { RecordItem, LocationData, WORK_ITEMS } from '../types';
+import { RecordItem, LocationData, WORK_ITEMS, FIRESTOP_WORK_ITEMS, ProjectType } from '../types';
 import { formatLocationString } from '../utils/watermark';
 
 /**
@@ -11,6 +11,8 @@ import { formatLocationString } from '../utils/watermark';
 interface Props {
   initialData?: RecordItem;         // 若有傳入此參數，表示為「編輯模式」
   lastRecord?: RecordItem;          // 上一筆紀錄 (用於新增模式時繼承資料)
+  defaultValues?: Partial<RecordItem>; // 特殊預設值 (例如：新增施工後時，指定特定位置與工項)
+  projectType: ProjectType;         // 專案類型，決定顯示哪種下拉選單
   onSave: (record: RecordItem) => void; // 儲存回調
   onCancel: () => void;             // 取消/關閉回調
   nextId: number;                   // 下一個 ID (新增模式使用)
@@ -24,15 +26,28 @@ const FLOOR_OPTIONS = [
   ...Array.from({ length: 3 }, (_, i) => `R${i + 1}`)    // R1 -> R3
 ];
 
-const RecordEditor: React.FC<Props> = ({ initialData, lastRecord, onSave, onCancel, nextId }) => {
+const RecordEditor: React.FC<Props> = ({ 
+  initialData, 
+  lastRecord, 
+  defaultValues, 
+  projectType, 
+  onSave, 
+  onCancel, 
+  nextId 
+}) => {
+  
+  // 決定使用哪個選項清單
+  const currentWorkItems = projectType === 'FIRESTOP' ? FIRESTOP_WORK_ITEMS : WORK_ITEMS;
+
   // --- 狀態管理 ---
   // 圖片 (Base64) - 圖片不繼承，必須重拍
   const [image, setImage] = useState<string | null>(initialData?.originalImage || null);
   
   // 施工位置 (物件結構)
-  // 優先順序: 編輯資料 > 上一筆紀錄(繼承) > 預設空白
+  // 優先順序: 編輯資料 > 特殊預設值(新增施工後) > 上一筆紀錄(繼承) > 預設空白
   const [location, setLocation] = useState<LocationData>(
     initialData?.location || 
+    defaultValues?.location ||
     lastRecord?.location || 
     {
       building: '',
@@ -43,15 +58,17 @@ const RecordEditor: React.FC<Props> = ({ initialData, lastRecord, onSave, onCanc
   );
   
   // 施工項目與自定義項目
-  // 優先順序: 編輯資料 > 上一筆紀錄(繼承) > 預設第一項
+  // 優先順序: 編輯資料 > 特殊預設值(新增施工後) > 上一筆紀錄(繼承) > 預設第一項
   const [workItem, setWorkItem] = useState<string>(
     initialData?.workItem || 
+    defaultValues?.workItem ||
     lastRecord?.workItem || 
-    WORK_ITEMS[0]
+    currentWorkItems[0]
   );
   
   const [workItemCustom, setWorkItemCustom] = useState<string>(
     initialData?.workItemCustom || 
+    defaultValues?.workItemCustom ||
     lastRecord?.workItemCustom || 
     ''
   );
@@ -220,7 +237,7 @@ const RecordEditor: React.FC<Props> = ({ initialData, lastRecord, onSave, onCanc
                 onChange={(e) => setWorkItem(e.target.value)}
                 className="w-full p-4 pr-10 border border-white/60 rounded-xl bg-white/50 appearance-none outline-none focus:ring-2 focus:ring-cyan-200/50 shadow-sm text-slate-800 font-medium transition-all"
               >
-                {WORK_ITEMS.map(item => (
+                {currentWorkItems.map(item => (
                   <option key={item} value={item}>{item}</option>
                 ))}
               </select>

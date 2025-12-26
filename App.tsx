@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Save, LogOut, FileDown, FolderOpen, FilePlus } from 'lucide-react';
+import { Plus, Save, LogOut, FileDown, FolderOpen, FilePlus, Flame, Edit, CopyPlus } from 'lucide-react';
 import JSZip from 'jszip';
 import * as XLSX from 'xlsx';
 
-import { ProjectData, ViewState, RecordItem } from './types';
+import { ProjectData, ViewState, RecordItem, ProjectType } from './types';
 import { loadProjectFromDB, saveProjectToDB, clearProjectFromDB } from './utils/db';
 import { generateWatermark, formatLocationString } from './utils/watermark';
 import RecordEditor from './components/RecordEditor';
@@ -17,15 +17,23 @@ const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.HOME); // 當前畫面
   const [project, setProject] = useState<ProjectData | null>(null); // 當前專案資料
   const [editingRecord, setEditingRecord] = useState<RecordItem | undefined>(undefined); // 正被編輯的紀錄
+  
+  // 當進行「新增施工後」時，我們會需要將特定欄位(如位置)傳給 Editor 當作預設值
+  const [recordDefaultValues, setRecordDefaultValues] = useState<Partial<RecordItem> | undefined>(undefined);
+
   const [isLoading, setIsLoading] = useState(false); // 載入狀態
   
   // 對話框狀態
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   
+  // 紀錄操作對話框 (僅用於防火填塞模式)
+  const [actionDialogRecord, setActionDialogRecord] = useState<RecordItem | null>(null);
+  
   // 新專案輸入欄位
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectMonth, setNewProjectMonth] = useState('');
+  const [newProjectType, setNewProjectType] = useState<ProjectType>('GENERAL'); // 追蹤即將建立的專案類型
 
   // --- Side Effects ---
   
@@ -36,6 +44,8 @@ const App: React.FC = () => {
       try {
         const saved = await loadProjectFromDB();
         if (saved) {
+          // 向下相容：舊資料沒有 type 欄位，預設為 GENERAL
+          if (!saved.type) saved.type = 'GENERAL';
           setProject(saved);
           setView(ViewState.PROJECT_LIST); // 若有存檔，直接進入列表
         }
@@ -58,6 +68,15 @@ const App: React.FC = () => {
   // --- 事件處理函式 ---
 
   /**
+   * 呼叫建立新專案對話框
+   * @param type 專案類型
+   */
+  const openNewProjectDialog = (type: ProjectType) => {
+    setNewProjectType(type);
+    setShowNewProjectDialog(true);
+  };
+
+  /**
    * 建立新專案
    * 驗證輸入並初始化專案結構
    */
@@ -74,6 +93,7 @@ const App: React.FC = () => {
     const newProject: ProjectData = {
       name: newProjectName,
       month: newProjectMonth,
+      type: newProjectType,
       records: [],
       lastModified: Date.now()
     };
@@ -96,6 +116,9 @@ const App: React.FC = () => {
       try {
         const data = JSON.parse(event.target?.result as string) as ProjectData;
         if (data.name && data.records) {
+           // 向下相容
+           if (!data.type) data.type = 'GENERAL';
+           
            await saveProjectToDB(data); // 立即寫入 DB
            setProject(data);
            setView(ViewState.PROJECT_LIST);
@@ -119,7 +142,7 @@ const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${project.name}_${project.month}_專案備份.json`;
+    a.download = `${project.name}_${project.month}_${project.type === 'FIRESTOP' ? '防火填塞_' : ''}備份.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -128,7 +151,6 @@ const App: React.FC = () => {
 
   /**
    * 匯出 ZIP 包
-   * 包含：1. 加浮水印的照片 2. Excel 統計表
    */
   const handleExportZip = async () => {
     if (!project) return;
@@ -136,7 +158,8 @@ const App: React.FC = () => {
     
     try {
       const zip = new JSZip();
-      const folder = zip.folder(`${project.name}_${project.month}`);
+      const folderName = `${project.name}_${project.month}${project.type === 'FIRESTOP' ? '_防火填塞' : ''}`;
+      const folder = zip.folder(folderName);
       
       const spreadsheetData: any[] = [];
 
@@ -178,7 +201,7 @@ const App: React.FC = () => {
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${project.name}_${project.month}_匯出.zip`;
+      a.download = `${folderName}_匯出.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -194,7 +217,6 @@ const App: React.FC = () => {
 
   /**
    * 退出專案
-   * @param save 是否在退出前下載 JSON
    */
   const handleExit = async (save: boolean) => {
     if (save) {
@@ -204,6 +226,40 @@ const App: React.FC = () => {
     setProject(null);
     setView(ViewState.HOME);
     setShowExitDialog(false);
+  };
+
+  /**
+   * 列表項目點擊處理
+   */
+  const handleRecordClick = (record: RecordItem) => {
+    if (!project) return;
+
+    if (project.type === 'FIRESTOP') {
+      // 防火填塞模式：開啟選擇對話框
+      setActionDialogRecord(record);
+    } else {
+      // 一般模式：直接編輯
+      setEditingRecord(record);
+      setRecordDefaultValues(undefined);
+      setView(ViewState.EDIT_RECORD);
+    }
+  };
+
+  /**
+   * 處理「新增施工後」
+   */
+  const handleAddAfterConstruction = (sourceRecord: RecordItem) => {
+    setActionDialogRecord(null); // 關閉對話框
+    setEditingRecord(undefined); // 確保是新增模式
+    
+    // 設定預設值：位置同上一筆，工項強制為「施工後」
+    setRecordDefaultValues({
+      location: sourceRecord.location,
+      workItem: '施工後',
+      // 日期與備註不繼承，讓使用者填寫
+    });
+    
+    setView(ViewState.EDIT_RECORD);
   };
 
   /**
@@ -227,6 +283,7 @@ const App: React.FC = () => {
     setProject({ ...project, records: newRecords, lastModified: Date.now() });
     setView(ViewState.PROJECT_LIST);
     setEditingRecord(undefined);
+    setRecordDefaultValues(undefined);
   };
 
   // --- Render 邏輯 ---
@@ -246,8 +303,8 @@ const App: React.FC = () => {
   // 風格：置中卡片，毛玻璃背景
   if (view === ViewState.HOME) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center p-6 animate-fadeIn">
-        <div className="w-full max-w-md bg-white/40 backdrop-blur-xl border border-white/50 shadow-2xl rounded-3xl p-8 flex flex-col items-center">
+      <div className="h-screen flex flex-col items-center justify-center p-6 animate-fadeIn relative">
+        <div className="w-full max-w-md bg-white/40 backdrop-blur-xl border border-white/50 shadow-2xl rounded-3xl p-8 flex flex-col items-center z-10">
           {/* Logo / Title */}
           <div className="mb-10 text-center">
             <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-700 to-blue-700 tracking-wide mb-2 drop-shadow-sm">
@@ -256,7 +313,7 @@ const App: React.FC = () => {
             <p className="text-lg text-slate-600 font-medium tracking-widest uppercase">合煜消防</p>
           </div>
 
-          <div className="w-full space-y-5">
+          <div className="w-full space-y-4">
             {/* 開啟舊專案按鈕 */}
             <label className="block w-full group cursor-pointer">
                <div className="w-full bg-white/50 hover:bg-white/70 border border-white/60 rounded-2xl p-5 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm transition-all duration-300 group-active:scale-[0.98]">
@@ -266,22 +323,36 @@ const App: React.FC = () => {
                <input type="file" accept=".json" onChange={handleOpenProject} className="hidden" />
             </label>
 
-            {/* 建立新專案按鈕 */}
+            {/* 建立一般專案按鈕 */}
             <button 
-              onClick={() => setShowNewProjectDialog(true)}
+              onClick={() => openNewProjectDialog('GENERAL')}
               className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-2xl p-5 flex items-center justify-center text-lg font-bold shadow-lg shadow-cyan-500/30 transition-all duration-300 active:scale-[0.98]"
             >
               <FilePlus className="mr-3" />
-              建立新專案
+              建立一般專案
             </button>
+            
           </div>
+        </div>
+        
+        {/* 防火填塞入口 - 置於底部 */}
+        <div className="w-full max-w-md mt-6 z-10">
+           <button 
+              onClick={() => openNewProjectDialog('FIRESTOP')}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white rounded-2xl p-4 flex items-center justify-center text-lg font-bold shadow-lg shadow-orange-500/30 transition-all duration-300 active:scale-[0.98]"
+            >
+              <Flame className="mr-3" />
+              防火填塞
+            </button>
         </div>
 
         {/* 建立新專案對話框 (Modal) */}
         {showNewProjectDialog && (
           <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
             <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl w-11/12 max-w-md shadow-2xl border border-white/60 animate-slideUp">
-              <h3 className="text-xl font-bold mb-6 text-slate-800 text-center">建立新專案</h3>
+              <h3 className="text-xl font-bold mb-6 text-slate-800 text-center">
+                {newProjectType === 'FIRESTOP' ? '建立防火填塞專案' : '建立新專案'}
+              </h3>
               <div className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">案場名稱</label>
@@ -314,7 +385,7 @@ const App: React.FC = () => {
                 </button>
                 <button 
                   onClick={handleCreateProject} 
-                  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl font-bold shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/40 transition-all"
+                  className={`px-6 py-3 text-white rounded-xl font-bold shadow-lg transition-all ${newProjectType === 'FIRESTOP' ? 'bg-gradient-to-r from-orange-500 to-red-600 shadow-orange-500/30' : 'bg-gradient-to-r from-cyan-600 to-blue-600 shadow-cyan-500/30'}`}
                 >
                   建立
                 </button>
@@ -328,13 +399,20 @@ const App: React.FC = () => {
 
   // 2. 專案列表頁 (ViewState.PROJECT_LIST)
   if (view === ViewState.PROJECT_LIST && project) {
+    const isFirestop = project.type === 'FIRESTOP';
+    
     return (
       <div className="h-screen flex flex-col overflow-hidden relative animate-fadeIn">
         {/* Header - 透明毛玻璃頂部欄 */}
         <div className="bg-white/60 backdrop-blur-md border-b border-white/40 pt-safe-top pb-3 px-4 flex justify-between items-center shrink-0 z-10 shadow-sm">
-          {/* 修改：案場名稱與月份改為上下兩行顯示，背景更通透 */}
-          <div className="flex flex-col max-w-[60%] bg-white/40 px-4 py-1.5 rounded-xl border border-white/50 backdrop-blur-sm shadow-sm">
-            <h2 className="text-base font-bold text-slate-800 truncate leading-tight">
+          <div className="flex flex-col max-w-[60%] bg-white/40 px-4 py-1.5 rounded-xl border border-white/50 backdrop-blur-sm shadow-sm relative overflow-hidden">
+             {/* 專案類型標籤 */}
+             {isFirestop && (
+               <div className="absolute right-0 top-0 bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-bl-lg font-bold">
+                 防火填塞
+               </div>
+             )}
+            <h2 className="text-base font-bold text-slate-800 truncate leading-tight mt-0.5">
               {project.name}
             </h2>
             <span className="text-xs text-slate-500 font-medium tracking-wider">
@@ -381,7 +459,7 @@ const App: React.FC = () => {
             project.records.map((record, index) => (
               <div 
                 key={record.id}
-                onClick={() => { setEditingRecord(record); setView(ViewState.EDIT_RECORD); }}
+                onClick={() => handleRecordClick(record)}
                 className="group bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl p-3 flex gap-4 items-center shadow-sm hover:shadow-md hover:bg-white/80 transition-all active:scale-[0.99] cursor-pointer"
               >
                 {/* 縮圖 */}
@@ -397,7 +475,7 @@ const App: React.FC = () => {
                     {formatLocationString(record.location)}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-cyan-700 bg-cyan-50/50 px-2 py-0.5 rounded-md border border-cyan-100/50 truncate">
+                    <span className={`text-sm px-2 py-0.5 rounded-md border truncate ${isFirestop ? 'bg-orange-50/50 text-orange-700 border-orange-100/50' : 'bg-cyan-50/50 text-cyan-700 border-cyan-100/50'}`}>
                       {record.workItem === '其他' ? record.workItemCustom : record.workItem}
                     </span>
                   </div>
@@ -410,12 +488,11 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* 浮動新增按鈕 (FAB) - Apple Liquid Glass Style */}
+        {/* 浮動新增按鈕 (FAB) */}
         <button 
-          onClick={() => { setEditingRecord(undefined); setView(ViewState.EDIT_RECORD); }}
-          className="absolute bottom-8 right-6 w-16 h-16 flex items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/70 to-blue-600/70 backdrop-blur-xl border border-white/50 shadow-lg shadow-cyan-500/30 hover:scale-105 active:scale-95 transition-all z-20 text-white"
+          onClick={() => { setEditingRecord(undefined); setRecordDefaultValues(undefined); setView(ViewState.EDIT_RECORD); }}
+          className={`absolute bottom-8 right-6 w-16 h-16 flex items-center justify-center rounded-full backdrop-blur-xl border border-white/50 shadow-lg hover:scale-105 active:scale-95 transition-all z-20 text-white ${isFirestop ? 'bg-gradient-to-br from-orange-500/70 to-red-600/70 shadow-orange-500/30' : 'bg-gradient-to-br from-cyan-500/70 to-blue-600/70 shadow-cyan-500/30'}`}
         >
-           {/* 內部光暈效果 */}
           <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
           <Plus size={32} strokeWidth={3} className="drop-shadow-md" />
         </button>
@@ -449,20 +526,60 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* 防火填塞專用操作對話框 (編輯/新增施工後) */}
+        {actionDialogRecord && (
+           <div 
+             className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 px-4 animate-fadeIn"
+             onClick={() => setActionDialogRecord(null)} // 點擊背景關閉
+           >
+             <div 
+               className="bg-white/90 backdrop-blur-xl rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-white/60 animate-slideUp flex gap-4"
+               onClick={e => e.stopPropagation()} // 阻止冒泡
+             >
+                <button 
+                  onClick={() => {
+                    setEditingRecord(actionDialogRecord);
+                    setRecordDefaultValues(undefined);
+                    setView(ViewState.EDIT_RECORD);
+                    setActionDialogRecord(null);
+                  }}
+                  className="flex-1 flex flex-col items-center justify-center py-6 bg-blue-50/50 hover:bg-blue-100/50 border border-blue-200/50 rounded-2xl transition-all active:scale-[0.98]"
+                >
+                  <div className="bg-blue-100 p-3 rounded-full mb-2 text-blue-600">
+                    <Edit size={28} />
+                  </div>
+                  <span className="font-bold text-slate-700">編輯紀錄</span>
+                </button>
+
+                <button 
+                  onClick={() => handleAddAfterConstruction(actionDialogRecord)}
+                  className="flex-1 flex flex-col items-center justify-center py-6 bg-orange-50/50 hover:bg-orange-100/50 border border-orange-200/50 rounded-2xl transition-all active:scale-[0.98]"
+                >
+                   <div className="bg-orange-100 p-3 rounded-full mb-2 text-orange-600">
+                    <CopyPlus size={28} />
+                  </div>
+                  <span className="font-bold text-slate-700">新增施工後</span>
+                </button>
+             </div>
+           </div>
+        )}
       </div>
     );
   }
 
   // 3. 編輯/新增紀錄頁面 (全螢幕模式)
-  if (view === ViewState.EDIT_RECORD) {
+  if (view === ViewState.EDIT_RECORD && project) {
     return (
       <div className="h-screen w-full relative bg-white/30 backdrop-blur-xl animate-fadeIn">
         <RecordEditor 
           initialData={editingRecord}
-          lastRecord={project?.records[project.records.length - 1]} // 傳入上一筆紀錄
+          lastRecord={project.records[project.records.length - 1]} // 傳入上一筆紀錄
+          defaultValues={recordDefaultValues} // 傳入特殊預設值 (例如新增施工後)
+          projectType={project.type} // 傳入專案類型
           onSave={saveRecord}
           onCancel={() => setView(ViewState.PROJECT_LIST)}
-          nextId={project ? project.records.length + 1 : 1}
+          nextId={project.records.length + 1}
         />
       </div>
     );

@@ -2,6 +2,9 @@
  * 定義應用程式中使用的所有 TypeScript 介面與型別
  */
 
+// 專案類型定義
+export type ProjectType = 'GENERAL' | 'FIRESTOP';
+
 // 施工位置資料結構
 export interface LocationData {
   building: string;   // 棟 (例如: A)
@@ -27,6 +30,7 @@ export interface RecordItem {
 export interface ProjectData {
   name: string;        // 案場名稱
   month: string;       // 請款月份 (格式: YYYYMM)
+  type: ProjectType;   // 專案類型 (一般/防火填塞)
   records: RecordItem[]; // 包含的所有紀錄列表
   lastModified: number;  // 最後修改時間
 }
@@ -38,7 +42,7 @@ export enum ViewState {
   EDIT_RECORD = 'EDIT_RECORD'    // 編輯/新增紀錄頁 (拍照與填寫資料)
 }
 
-// 預設的施工項目選單
+// 預設的施工項目選單 (一般專案)
 export const WORK_ITEMS = [
   "RC套管放樣",
   "消防電配管",
@@ -55,4 +59,10 @@ export const WORK_ITEMS = [
   "泡沫、撒水管試壓完成",
   "排煙設備完成",
   "其他"
+];
+
+// 防火填塞專用項目選單
+export const FIRESTOP_WORK_ITEMS = [
+  "施工前",
+  "施工後"
 ];
