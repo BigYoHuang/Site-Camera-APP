@@ -16,6 +16,7 @@ export interface LocationData {
 // 單筆施工紀錄項目
 export interface RecordItem {
   id: string;             // 唯一識別碼 (通常使用 timestamp 字串)
+  displayId?: string;     // 顯示用的編號 (例如: "001")，用於防火填塞繼承編號
   timestamp: number;      // 建立時間戳記
   originalImage: string;  // 原始照片的 Base64 字串
   watermarkedImage?: string; // (選填) 加浮水印後的 Base64，通常在匯出時產生

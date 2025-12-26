@@ -20,6 +20,8 @@ const App: React.FC = () => {
   
   // 當進行「新增施工後」時，我們會需要將特定欄位(如位置)傳給 Editor 當作預設值
   const [recordDefaultValues, setRecordDefaultValues] = useState<Partial<RecordItem> | undefined>(undefined);
+  // 用於傳遞預填的 ID 給 Editor
+  const [nextDisplayId, setNextDisplayId] = useState<string>('001');
 
   const [isLoading, setIsLoading] = useState(false); // 載入狀態
   
@@ -34,6 +36,18 @@ const App: React.FC = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectMonth, setNewProjectMonth] = useState('');
   const [newProjectType, setNewProjectType] = useState<ProjectType>('GENERAL'); // 追蹤即將建立的專案類型
+
+  // --- Helper Functions ---
+  
+  /**
+   * 計算下一個可用的顯示編號 (一般模式或新施工前)
+   * 規則：找出目前最大的數值 + 1
+   */
+  const getNextDisplayId = (records: RecordItem[]): string => {
+    const ids = records.map(r => parseInt(r.displayId || '0', 10));
+    const max = ids.length > 0 ? Math.max(...ids) : 0;
+    return (max + 1).toString().padStart(3, '0');
+  };
 
   // --- Side Effects ---
   
@@ -166,7 +180,9 @@ const App: React.FC = () => {
       // 遍歷所有紀錄
       for (let i = 0; i < project.records.length; i++) {
         const rec = project.records[i];
-        const displayId = (i + 1).toString().padStart(3, '0'); // 格式化編號 001, 002...
+        
+        // 優先使用 displayId，若無則回退到 index + 1
+        const displayId = rec.displayId || (i + 1).toString().padStart(3, '0');
         const fileName = `${displayId}_${rec.workItem}.jpg`;
         
         // 核心邏輯：即時生成浮水印圖片
@@ -241,6 +257,8 @@ const App: React.FC = () => {
       // 一般模式：直接編輯
       setEditingRecord(record);
       setRecordDefaultValues(undefined);
+      // 一般模式不需要特別計算 nextDisplayId 給編輯用 (因為是編輯舊的)
+      setNextDisplayId(record.displayId || '000'); 
       setView(ViewState.EDIT_RECORD);
     }
   };
@@ -259,6 +277,21 @@ const App: React.FC = () => {
       // 日期與備註不繼承，讓使用者填寫
     });
     
+    // 繼承來源的編號
+    setNextDisplayId(sourceRecord.displayId || '001');
+
+    setView(ViewState.EDIT_RECORD);
+  };
+
+  /**
+   * 點擊 FAB 新增紀錄
+   */
+  const handleAddNewRecord = () => {
+    if (!project) return;
+    setEditingRecord(undefined);
+    setRecordDefaultValues(undefined);
+    // 計算新的編號
+    setNextDisplayId(getNextDisplayId(project.records));
     setView(ViewState.EDIT_RECORD);
   };
 
@@ -287,11 +320,20 @@ const App: React.FC = () => {
   };
 
   // --- Render 邏輯 ---
+  
+  // 決定背景樣式
+  const getAppBackground = () => {
+     if (!project) return "background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #e0e7ff 100%)"; // 首頁藍色系
+     if (project.type === 'FIRESTOP') return "bg-gradient-to-br from-orange-50 to-red-50"; // 防火填塞淡紅
+     return "bg-gradient-to-br from-cyan-50 to-blue-50"; // 一般專案藍
+  };
+
+  const appBgClass = !project ? "bg-gradient-to-br from-cyan-50 via-white to-blue-50" : (project.type === 'FIRESTOP' ? "bg-gradient-to-br from-orange-50 via-white to-red-50" : "bg-gradient-to-br from-cyan-50 via-white to-blue-50");
 
   // 0. 載入畫面
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className={`h-screen flex items-center justify-center ${appBgClass}`}>
          <div className="bg-white/30 backdrop-blur-md p-6 rounded-2xl shadow-xl border border-white/50">
             <div className="text-xl font-bold text-slate-700 animate-pulse">處理中...</div>
          </div>
@@ -303,7 +345,10 @@ const App: React.FC = () => {
   // 風格：置中卡片，毛玻璃背景
   if (view === ViewState.HOME) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center p-6 animate-fadeIn relative">
+      <div className={`h-screen flex flex-col items-center justify-center p-6 animate-fadeIn relative ${appBgClass}`}>
+        <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-200/30 blur-[80px] pointer-events-none z-0"></div>
+        <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-200/30 blur-[100px] pointer-events-none z-0"></div>
+
         <div className="w-full max-w-md bg-white/40 backdrop-blur-xl border border-white/50 shadow-2xl rounded-3xl p-8 flex flex-col items-center z-10">
           {/* Logo / Title */}
           <div className="mb-10 text-center">
@@ -402,16 +447,15 @@ const App: React.FC = () => {
     const isFirestop = project.type === 'FIRESTOP';
     
     return (
-      <div className="h-screen flex flex-col overflow-hidden relative animate-fadeIn">
+      <div className={`h-screen flex flex-col overflow-hidden relative animate-fadeIn ${appBgClass}`}>
+        {/* 裝飾光暈 - 根據專案類型變色 */}
+        <div className={`fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[80px] pointer-events-none z-0 ${isFirestop ? 'bg-orange-200/30' : 'bg-cyan-200/30'}`}></div>
+        <div className={`fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[100px] pointer-events-none z-0 ${isFirestop ? 'bg-red-200/30' : 'bg-blue-200/30'}`}></div>
+
         {/* Header - 透明毛玻璃頂部欄 */}
         <div className="bg-white/60 backdrop-blur-md border-b border-white/40 pt-safe-top pb-3 px-4 flex justify-between items-center shrink-0 z-10 shadow-sm">
           <div className="flex flex-col max-w-[60%] bg-white/40 px-4 py-1.5 rounded-xl border border-white/50 backdrop-blur-sm shadow-sm relative overflow-hidden">
-             {/* 專案類型標籤 */}
-             {isFirestop && (
-               <div className="absolute right-0 top-0 bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-bl-lg font-bold">
-                 防火填塞
-               </div>
-             )}
+            {/* 移除 Header 左上角依附的文字，保持介面乾淨 */}
             <h2 className="text-base font-bold text-slate-800 truncate leading-tight mt-0.5">
               {project.name}
             </h2>
@@ -446,7 +490,7 @@ const App: React.FC = () => {
         </div>
 
         {/* 紀錄列表區域 */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28 z-10">
           {project.records.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
                <div className="w-20 h-20 bg-white/30 rounded-full flex items-center justify-center mb-4">
@@ -456,41 +500,50 @@ const App: React.FC = () => {
               <p className="text-sm">點擊右下角按鈕新增照片</p>
             </div>
           ) : (
-            project.records.map((record, index) => (
-              <div 
-                key={record.id}
-                onClick={() => handleRecordClick(record)}
-                className="group bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl p-3 flex gap-4 items-center shadow-sm hover:shadow-md hover:bg-white/80 transition-all active:scale-[0.99] cursor-pointer"
-              >
-                {/* 縮圖 */}
-                <div className="h-20 w-20 bg-slate-100 shrink-0 rounded-xl overflow-hidden shadow-inner border border-white/50 relative">
-                  <img src={record.originalImage} alt="thumbnail" className="h-full w-full object-cover" />
-                  <div className="absolute top-0 left-0 bg-black/40 px-1.5 py-0.5 rounded-br-lg text-[10px] text-white font-mono">
-                    {String(index + 1).padStart(2, '0')}
+            project.records.map((record, index) => {
+               const displayId = record.displayId || (index + 1).toString().padStart(3, '0');
+               const isPostConstruction = record.workItem === '施工後';
+
+               return (
+                <div 
+                  key={record.id}
+                  onClick={() => handleRecordClick(record)}
+                  className="group bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl p-3 flex gap-4 items-center shadow-sm hover:shadow-md hover:bg-white/80 transition-all active:scale-[0.99] cursor-pointer"
+                >
+                  {/* 縮圖 */}
+                  <div className="h-20 w-20 bg-slate-100 shrink-0 rounded-xl overflow-hidden shadow-inner border border-white/50 relative">
+                    <img src={record.originalImage} alt="thumbnail" className="h-full w-full object-cover" />
+                    <div className="absolute top-0 left-0 bg-black/40 px-1.5 py-0.5 rounded-br-lg text-[10px] text-white font-mono">
+                      {displayId}
+                    </div>
                   </div>
-                </div>
-                {/* 資訊文字 */}
-                <div className="flex flex-col justify-center h-full min-w-0">
-                  <span className="font-bold text-slate-800 text-lg truncate mb-1">
-                    {formatLocationString(record.location)}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm px-2 py-0.5 rounded-md border truncate ${isFirestop ? 'bg-orange-50/50 text-orange-700 border-orange-100/50' : 'bg-cyan-50/50 text-cyan-700 border-cyan-100/50'}`}>
-                      {record.workItem === '其他' ? record.workItemCustom : record.workItem}
+                  {/* 資訊文字 */}
+                  <div className="flex flex-col justify-center h-full min-w-0">
+                    <span className="font-bold text-slate-800 text-lg truncate mb-1">
+                      {formatLocationString(record.location)}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm px-2 py-0.5 rounded-md border truncate ${
+                        isPostConstruction 
+                          ? 'bg-emerald-50/50 text-emerald-700 border-emerald-100/50' // 施工後：綠色
+                          : (isFirestop ? 'bg-orange-50/50 text-orange-700 border-orange-100/50' : 'bg-cyan-50/50 text-cyan-700 border-cyan-100/50') // 其他
+                      }`}>
+                        {record.workItem === '其他' ? record.workItemCustom : record.workItem}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                      {record.date}
                     </span>
                   </div>
-                   <span className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                    {record.date}
-                  </span>
                 </div>
-              </div>
-            ))
+               );
+            })
           )}
         </div>
 
         {/* 浮動新增按鈕 (FAB) */}
         <button 
-          onClick={() => { setEditingRecord(undefined); setRecordDefaultValues(undefined); setView(ViewState.EDIT_RECORD); }}
+          onClick={handleAddNewRecord}
           className={`absolute bottom-8 right-6 w-16 h-16 flex items-center justify-center rounded-full backdrop-blur-xl border border-white/50 shadow-lg hover:scale-105 active:scale-95 transition-all z-20 text-white ${isFirestop ? 'bg-gradient-to-br from-orange-500/70 to-red-600/70 shadow-orange-500/30' : 'bg-gradient-to-br from-cyan-500/70 to-blue-600/70 shadow-cyan-500/30'}`}
         >
           <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
@@ -541,6 +594,8 @@ const App: React.FC = () => {
                   onClick={() => {
                     setEditingRecord(actionDialogRecord);
                     setRecordDefaultValues(undefined);
+                    // 編輯模式，ID 使用紀錄原本的
+                    setNextDisplayId(actionDialogRecord.displayId || '000');
                     setView(ViewState.EDIT_RECORD);
                     setActionDialogRecord(null);
                   }}
@@ -552,14 +607,24 @@ const App: React.FC = () => {
                   <span className="font-bold text-slate-700">編輯紀錄</span>
                 </button>
 
+                {/* 新增施工後按鈕 */}
                 <button 
-                  onClick={() => handleAddAfterConstruction(actionDialogRecord)}
-                  className="flex-1 flex flex-col items-center justify-center py-6 bg-orange-50/50 hover:bg-orange-100/50 border border-orange-200/50 rounded-2xl transition-all active:scale-[0.98]"
+                  onClick={() => {
+                    // 如果已经是施工后，则不执行任何动作
+                    if (actionDialogRecord.workItem === '施工後') return;
+                    handleAddAfterConstruction(actionDialogRecord);
+                  }}
+                  disabled={actionDialogRecord.workItem === '施工後'}
+                  className={`flex-1 flex flex-col items-center justify-center py-6 border rounded-2xl transition-all ${
+                    actionDialogRecord.workItem === '施工後'
+                      ? 'bg-slate-100/50 border-slate-200 text-slate-400 cursor-not-allowed' // 反灰樣式
+                      : 'bg-orange-50/50 hover:bg-orange-100/50 border-orange-200/50 active:scale-[0.98] cursor-pointer'
+                  }`}
                 >
-                   <div className="bg-orange-100 p-3 rounded-full mb-2 text-orange-600">
+                   <div className={`p-3 rounded-full mb-2 ${actionDialogRecord.workItem === '施工後' ? 'bg-slate-200 text-slate-400' : 'bg-orange-100 text-orange-600'}`}>
                     <CopyPlus size={28} />
                   </div>
-                  <span className="font-bold text-slate-700">新增施工後</span>
+                  <span className={`font-bold ${actionDialogRecord.workItem === '施工後' ? 'text-slate-400' : 'text-slate-700'}`}>新增施工後</span>
                 </button>
              </div>
            </div>
@@ -571,15 +636,15 @@ const App: React.FC = () => {
   // 3. 編輯/新增紀錄頁面 (全螢幕模式)
   if (view === ViewState.EDIT_RECORD && project) {
     return (
-      <div className="h-screen w-full relative bg-white/30 backdrop-blur-xl animate-fadeIn">
+      <div className={`h-screen w-full relative backdrop-blur-xl animate-fadeIn ${appBgClass}`}>
         <RecordEditor 
           initialData={editingRecord}
           lastRecord={project.records[project.records.length - 1]} // 傳入上一筆紀錄
           defaultValues={recordDefaultValues} // 傳入特殊預設值 (例如新增施工後)
           projectType={project.type} // 傳入專案類型
+          prefilledDisplayId={nextDisplayId} // 傳入計算好的編號
           onSave={saveRecord}
           onCancel={() => setView(ViewState.PROJECT_LIST)}
-          nextId={project.records.length + 1}
         />
       </div>
     );

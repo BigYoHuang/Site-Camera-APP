@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Save, X, ChevronDown } from 'lucide-react';
+import { Camera, Save, X, ChevronDown, Check } from 'lucide-react';
 import { RecordItem, LocationData, WORK_ITEMS, FIRESTOP_WORK_ITEMS, ProjectType } from '../types';
 import { formatLocationString } from '../utils/watermark';
 
@@ -13,9 +13,9 @@ interface Props {
   lastRecord?: RecordItem;          // 上一筆紀錄 (用於新增模式時繼承資料)
   defaultValues?: Partial<RecordItem>; // 特殊預設值 (例如：新增施工後時，指定特定位置與工項)
   projectType: ProjectType;         // 專案類型，決定顯示哪種下拉選單
+  prefilledDisplayId: string;       // 預填的顯示編號 (例如 "001")
   onSave: (record: RecordItem) => void; // 儲存回調
   onCancel: () => void;             // 取消/關閉回調
-  nextId: number;                   // 下一個 ID (新增模式使用)
 }
 
 // 產生樓層選項清單
@@ -31,18 +31,22 @@ const RecordEditor: React.FC<Props> = ({
   lastRecord, 
   defaultValues, 
   projectType, 
+  prefilledDisplayId,
   onSave, 
   onCancel, 
-  nextId 
 }) => {
   
-  // 決定使用哪個選項清單
-  const currentWorkItems = projectType === 'FIRESTOP' ? FIRESTOP_WORK_ITEMS : WORK_ITEMS;
+  // 決定使用哪個選項清單 (一般專案用)
+  const currentWorkItems = WORK_ITEMS;
+  const isFirestop = projectType === 'FIRESTOP';
 
   // --- 狀態管理 ---
   // 圖片 (Base64) - 圖片不繼承，必須重拍
   const [image, setImage] = useState<string | null>(initialData?.originalImage || null);
   
+  // 顯示編號 (不開放編輯，僅用於儲存)
+  const [displayId] = useState<string>(initialData?.displayId || prefilledDisplayId);
+
   // 施工位置 (物件結構)
   // 優先順序: 編輯資料 > 特殊預設值(新增施工後) > 上一筆紀錄(繼承) > 預設空白
   const [location, setLocation] = useState<LocationData>(
@@ -63,7 +67,7 @@ const RecordEditor: React.FC<Props> = ({
     initialData?.workItem || 
     defaultValues?.workItem ||
     lastRecord?.workItem || 
-    currentWorkItems[0]
+    (isFirestop ? FIRESTOP_WORK_ITEMS[0] : WORK_ITEMS[0])
   );
   
   const [workItemCustom, setWorkItemCustom] = useState<string>(
@@ -109,6 +113,7 @@ const RecordEditor: React.FC<Props> = ({
 
     const newRecord: RecordItem = {
       id: initialData?.id || Date.now().toString(), // 若是新增則用當下時間戳當 ID
+      displayId: displayId, // 儲存顯示編號
       timestamp: initialData?.timestamp || Date.now(),
       originalImage: image,
       location,
@@ -124,13 +129,21 @@ const RecordEditor: React.FC<Props> = ({
   const isEditing = !!initialData;
   const title = isEditing ? '編輯紀錄' : '新增紀錄';
 
+  // 根據專案類型選擇背景色 (為了在白色背景上更清晰，這裡微調)
+  const bgClass = isFirestop ? "bg-red-50/90" : "bg-white/90";
+
   return (
-    // 外層容器：全螢幕高模糊背景 (Glassmorphism backdrop)
-    // 加入 overflow-x-hidden 防止水平捲動
-    <div className="fixed inset-0 bg-white/90 backdrop-blur-2xl z-50 overflow-y-auto overflow-x-hidden flex flex-col animate-slideUp">
+    // 外層容器
+    <div className={`fixed inset-0 ${bgClass} backdrop-blur-2xl z-50 overflow-y-auto overflow-x-hidden flex flex-col animate-slideUp`}>
       {/* Header: 半透明頂部導航 */}
       <div className="bg-white/50 backdrop-blur-md border-b border-white/50 px-4 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-800">{title}</h2>
+        <div className="flex items-center gap-2">
+           <h2 className="text-xl font-bold text-slate-800">{title}</h2>
+           {/* 顯示目前編號 */}
+           <span className="bg-slate-200/60 text-slate-600 px-2 py-0.5 rounded text-sm font-mono font-bold">
+             #{displayId}
+           </span>
+        </div>
         <button onClick={onCancel} className="p-2 bg-slate-100/50 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 transition-colors">
           <X size={24} />
         </button>
@@ -138,7 +151,7 @@ const RecordEditor: React.FC<Props> = ({
 
       <div className="p-5 flex-1 flex flex-col gap-6 pb-24 max-w-lg mx-auto w-full">
         
-        {/* 照片區塊：支援點擊觸發檔案選擇 */}
+        {/* 照片區塊 */}
         <div 
           className="w-full aspect-[4/3] bg-white/40 rounded-3xl border-2 border-dashed border-slate-300/60 flex flex-col items-center justify-center overflow-hidden relative cursor-pointer active:bg-white/60 transition-all shadow-inner group hover:border-cyan-400/50"
           onClick={() => fileInputRef.current?.click()}
@@ -153,7 +166,6 @@ const RecordEditor: React.FC<Props> = ({
               <span className="text-lg font-medium block">點擊以拍照</span>
             </div>
           )}
-          {/* 隱藏的 Input，支援 capture="environment" 呼叫後鏡頭 */}
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -168,7 +180,7 @@ const RecordEditor: React.FC<Props> = ({
         <div className="space-y-2">
             <label className="block text-sm font-bold text-slate-600 ml-1">施工位置</label>
             <div className="flex items-center gap-2 flex-wrap">
-                {/* 棟別輸入 (強制大寫) */}
+                {/* 棟別輸入 */}
                 <div className="flex items-center bg-white/50 rounded-xl p-1 border border-white/60 shadow-sm focus-within:ring-2 focus-within:ring-cyan-200/50">
                     <input 
                       type="text" 
@@ -180,7 +192,7 @@ const RecordEditor: React.FC<Props> = ({
                     <span className="pr-3 text-slate-500 text-sm font-medium">棟</span>
                 </div>
                 
-                {/* 樓層輸入 (下拉選單 B10~R3) */}
+                {/* 樓層輸入 */}
                 <div className="flex items-center bg-white/50 rounded-xl p-1 border border-white/60 shadow-sm focus-within:ring-2 focus-within:ring-cyan-200/50">
                     {/* 起始樓層 */}
                     <div className="relative">
@@ -194,7 +206,6 @@ const RecordEditor: React.FC<Props> = ({
                           <option key={f} value={f}>{f}F</option>
                         ))}
                       </select>
-                      {/* 如果沒選值，顯示灰色 F */}
                       {!location.floorStart && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">F</span>}
                     </div>
 
@@ -212,7 +223,6 @@ const RecordEditor: React.FC<Props> = ({
                           <option key={f} value={f}>{f}F</option>
                         ))}
                       </select>
-                      {/* 如果沒選值，顯示灰色 F */}
                       {!location.floorEnd && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">F</span>}
                     </div>
                 </div>
@@ -231,18 +241,41 @@ const RecordEditor: React.FC<Props> = ({
         {/* 施工項目選擇區塊 */}
         <div className="space-y-2">
             <label className="block text-sm font-bold text-slate-600 ml-1">施工項目</label>
-            <div className="relative">
-              <select 
-                value={workItem} 
-                onChange={(e) => setWorkItem(e.target.value)}
-                className="w-full p-4 pr-10 border border-white/60 rounded-xl bg-white/50 appearance-none outline-none focus:ring-2 focus:ring-cyan-200/50 shadow-sm text-slate-800 font-medium transition-all"
-              >
-                {currentWorkItems.map(item => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20}/>
-            </div>
+            
+            {isFirestop ? (
+              /* 防火填塞：左右按鈕選擇 */
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setWorkItem('施工前')}
+                  className={`flex-1 py-4 px-4 rounded-xl border font-bold transition-all relative overflow-hidden ${workItem === '施工前' ? 'bg-cyan-600 border-cyan-600 text-white shadow-lg shadow-cyan-500/30 scale-[1.02]' : 'bg-white/50 border-white/60 text-slate-600 hover:bg-white/80'}`}
+                >
+                  施工前
+                  {workItem === '施工前' && <div className="absolute right-2 top-2"><Check size={16} /></div>}
+                </button>
+                <button 
+                  onClick={() => setWorkItem('施工後')}
+                  className={`flex-1 py-4 px-4 rounded-xl border font-bold transition-all relative overflow-hidden ${workItem === '施工後' ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-500/30 scale-[1.02]' : 'bg-white/50 border-white/60 text-slate-600 hover:bg-white/80'}`}
+                >
+                  施工後
+                   {workItem === '施工後' && <div className="absolute right-2 top-2"><Check size={16} /></div>}
+                </button>
+              </div>
+            ) : (
+              /* 一般專案：下拉選單 */
+              <div className="relative">
+                <select 
+                  value={workItem} 
+                  onChange={(e) => setWorkItem(e.target.value)}
+                  className="w-full p-4 pr-10 border border-white/60 rounded-xl bg-white/50 appearance-none outline-none focus:ring-2 focus:ring-cyan-200/50 shadow-sm text-slate-800 font-medium transition-all"
+                >
+                  {currentWorkItems.map(item => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20}/>
+              </div>
+            )}
+
             {/* 選擇「其他」時顯示的輸入框 */}
             {workItem === '其他' && (
                <input 
@@ -281,7 +314,7 @@ const RecordEditor: React.FC<Props> = ({
         {/* 儲存按鈕 */}
         <button 
           onClick={handleSave}
-          className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-4 px-6 rounded-2xl text-lg mt-6 shadow-lg shadow-cyan-500/30 active:scale-[0.98] transition-all"
+          className={`w-full text-white font-bold py-4 px-6 rounded-2xl text-lg mt-6 shadow-lg active:scale-[0.98] transition-all ${isFirestop ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 shadow-orange-500/30' : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/30'}`}
         >
           儲存紀錄
         </button>

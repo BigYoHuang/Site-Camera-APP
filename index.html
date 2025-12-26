@@ -65,13 +65,6 @@
 </script>
     
     <style>
-      body {
-        /* 全域流體漸層背景 (Fluid Gradient Background) */
-        /* 這也是 Glassmorphism 風格的基礎，讓半透明卡片下方有顏色變化 */
-        background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #e0e7ff 100%);
-        background-attachment: fixed; /* 背景固定，不隨捲動移動 */
-      }
-      
       /* 自定義捲軸樣式，使其更細緻並符合毛玻璃風格 */
       ::-webkit-scrollbar {
         width: 6px;
@@ -85,11 +78,7 @@
       }
     </style>
   </head>
-  <body class="text-slate-800 overscroll-none touch-pan-y antialiased selection:bg-cyan-200 selection:text-cyan-900">
-    <!-- 裝飾性背景光暈 (Decorative Blobs) -->
-    <!--這兩個 div 負責產生背景中模糊的色塊，增強毛玻璃的透視感 -->
-    <div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-200/30 blur-[80px] pointer-events-none z-[-1]"></div>
-    <div class="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-200/30 blur-[100px] pointer-events-none z-[-1]"></div>
+  <body class="text-slate-800 overscroll-none touch-pan-y antialiased selection:bg-cyan-200 selection:text-cyan-900 bg-slate-50">
     
     <!-- React 應用程式掛載點 -->
     <div id="root" class="h-full min-h-screen relative"></div>
