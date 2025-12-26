@@ -459,6 +459,7 @@ const App: React.FC = () => {
       <div className="h-screen w-full relative bg-white/30 backdrop-blur-xl animate-fadeIn">
         <RecordEditor 
           initialData={editingRecord}
+          lastRecord={project?.records[project.records.length - 1]} // 傳入上一筆紀錄
           onSave={saveRecord}
           onCancel={() => setView(ViewState.PROJECT_LIST)}
           nextId={project ? project.records.length + 1 : 1}

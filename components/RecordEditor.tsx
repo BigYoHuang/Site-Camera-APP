@@ -10,6 +10,7 @@ import { formatLocationString } from '../utils/watermark';
 
 interface Props {
   initialData?: RecordItem;         // 若有傳入此參數，表示為「編輯模式」
+  lastRecord?: RecordItem;          // 上一筆紀錄 (用於新增模式時繼承資料)
   onSave: (record: RecordItem) => void; // 儲存回調
   onCancel: () => void;             // 取消/關閉回調
   nextId: number;                   // 下一個 ID (新增模式使用)
@@ -23,27 +24,42 @@ const FLOOR_OPTIONS = [
   ...Array.from({ length: 3 }, (_, i) => `R${i + 1}`)    // R1 -> R3
 ];
 
-const RecordEditor: React.FC<Props> = ({ initialData, onSave, onCancel, nextId }) => {
+const RecordEditor: React.FC<Props> = ({ initialData, lastRecord, onSave, onCancel, nextId }) => {
   // --- 狀態管理 ---
-  // 圖片 (Base64)
+  // 圖片 (Base64) - 圖片不繼承，必須重拍
   const [image, setImage] = useState<string | null>(initialData?.originalImage || null);
   
   // 施工位置 (物件結構)
-  const [location, setLocation] = useState<LocationData>(initialData?.location || {
-    building: '',
-    floorStart: '',
-    floorEnd: '',
-    details: ''
-  });
+  // 優先順序: 編輯資料 > 上一筆紀錄(繼承) > 預設空白
+  const [location, setLocation] = useState<LocationData>(
+    initialData?.location || 
+    lastRecord?.location || 
+    {
+      building: '',
+      floorStart: '',
+      floorEnd: '',
+      details: ''
+    }
+  );
   
   // 施工項目與自定義項目
-  const [workItem, setWorkItem] = useState<string>(initialData?.workItem || WORK_ITEMS[0]);
-  const [workItemCustom, setWorkItemCustom] = useState<string>(initialData?.workItemCustom || '');
+  // 優先順序: 編輯資料 > 上一筆紀錄(繼承) > 預設第一項
+  const [workItem, setWorkItem] = useState<string>(
+    initialData?.workItem || 
+    lastRecord?.workItem || 
+    WORK_ITEMS[0]
+  );
   
-  // 日期 (預設今天)
+  const [workItemCustom, setWorkItemCustom] = useState<string>(
+    initialData?.workItemCustom || 
+    lastRecord?.workItemCustom || 
+    ''
+  );
+  
+  // 日期 (預設今天，不繼承，避免忘記改日期)
   const [date, setDate] = useState<string>(initialData?.date || new Date().toISOString().split('T')[0]);
   
-  // 備註
+  // 備註 (通常每張照片備註不同，暫不繼承)
   const [note, setNote] = useState<string>(initialData?.note || '');
   
   // 隱藏的檔案輸入框 Ref
