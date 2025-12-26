@@ -15,6 +15,14 @@ interface Props {
   nextId: number;                   // 下一個 ID (新增模式使用)
 }
 
+// 產生樓層選項清單
+// B10~B1, 1~50, R1~R3
+const FLOOR_OPTIONS = [
+  ...Array.from({ length: 10 }, (_, i) => `B${10 - i}`), // B10 -> B1
+  ...Array.from({ length: 50 }, (_, i) => `${i + 1}`),   // 1 -> 50
+  ...Array.from({ length: 3 }, (_, i) => `R${i + 1}`)    // R1 -> R3
+];
+
 const RecordEditor: React.FC<Props> = ({ initialData, onSave, onCancel, nextId }) => {
   // --- 狀態管理 ---
   // 圖片 (Base64)
@@ -127,36 +135,53 @@ const RecordEditor: React.FC<Props> = ({ initialData, onSave, onCancel, nextId }
         <div className="space-y-2">
             <label className="block text-sm font-bold text-slate-600 ml-1">施工位置</label>
             <div className="flex items-center gap-2 flex-wrap">
-                {/* 棟別輸入 */}
+                {/* 棟別輸入 (強制大寫) */}
                 <div className="flex items-center bg-white/50 rounded-xl p-1 border border-white/60 shadow-sm focus-within:ring-2 focus-within:ring-cyan-200/50">
                     <input 
                       type="text" 
                       value={location.building}
-                      onChange={(e) => setLocation({...location, building: e.target.value})}
-                      className="w-16 p-2 bg-transparent text-center outline-none font-bold text-slate-800" 
+                      onChange={(e) => setLocation({...location, building: e.target.value.toUpperCase()})}
+                      className="w-16 p-2 bg-transparent text-center outline-none font-bold text-slate-800 placeholder:font-normal" 
                       placeholder="-" 
                     />
                     <span className="pr-3 text-slate-500 text-sm font-medium">棟</span>
                 </div>
-                {/* 樓層輸入 (起始~結束) */}
+                
+                {/* 樓層輸入 (下拉選單 B10~R3) */}
                 <div className="flex items-center bg-white/50 rounded-xl p-1 border border-white/60 shadow-sm focus-within:ring-2 focus-within:ring-cyan-200/50">
-                    <input 
-                      type="number" 
-                      value={location.floorStart}
-                      onChange={(e) => setLocation({...location, floorStart: e.target.value})}
-                      className="w-14 p-2 bg-transparent text-center outline-none font-bold text-slate-800" 
-                      placeholder="-" 
-                    />
-                    <span className="text-slate-500 text-sm">F</span>
+                    {/* 起始樓層 */}
+                    <div className="relative">
+                      <select 
+                        value={location.floorStart}
+                        onChange={(e) => setLocation({...location, floorStart: e.target.value})}
+                        className="w-20 p-2 bg-transparent text-center outline-none font-bold text-slate-800 appearance-none pr-6" 
+                      >
+                        <option value="">-</option>
+                        {FLOOR_OPTIONS.map(f => (
+                          <option key={f} value={f}>{f}F</option>
+                        ))}
+                      </select>
+                      {/* 如果沒選值，顯示灰色 F */}
+                      {!location.floorStart && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">F</span>}
+                    </div>
+
                     <span className="mx-1 text-slate-400">~</span>
-                    <input 
-                      type="number" 
-                      value={location.floorEnd}
-                      onChange={(e) => setLocation({...location, floorEnd: e.target.value})}
-                      className="w-14 p-2 bg-transparent text-center outline-none font-bold text-slate-800" 
-                      placeholder="-" 
-                    />
-                    <span className="pr-2 text-slate-500 text-sm">F</span>
+                    
+                    {/* 結束樓層 */}
+                    <div className="relative">
+                      <select 
+                        value={location.floorEnd}
+                        onChange={(e) => setLocation({...location, floorEnd: e.target.value})}
+                        className="w-20 p-2 bg-transparent text-center outline-none font-bold text-slate-800 appearance-none pr-6" 
+                      >
+                         <option value="">-</option>
+                        {FLOOR_OPTIONS.map(f => (
+                          <option key={f} value={f}>{f}F</option>
+                        ))}
+                      </select>
+                      {/* 如果沒選值，顯示灰色 F */}
+                      {!location.floorEnd && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">F</span>}
+                    </div>
                 </div>
             </div>
             {/* 詳細位置 */}
