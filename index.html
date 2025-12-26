@@ -3,76 +3,94 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- 設定 viewport 以支援行動裝置，禁用縮放以模擬原生 App 體驗 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>施工照片記錄 - 合煜消防</title>
+    
+    <!-- 引入 Tailwind CSS (CDN版本用於快速原型開發) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind 自定義設定 -->
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            // 自定義顏色變數，用於 Glassmorphism 效果
             colors: {
-              glass: 'rgba(255, 255, 255, 0.25)',
-              glassBorder: 'rgba(255, 255, 255, 0.5)',
-              primary: '#0e7490',
+              glass: 'rgba(255, 255, 255, 0.25)', // 通用玻璃背景色
+              glassBorder: 'rgba(255, 255, 255, 0.5)', // 玻璃邊框色
+              primary: '#0e7490', // 主色調 (Cyan)
             },
+            // 自定義模糊度
             backdropBlur: {
               xs: '2px',
             },
+            // 定義動畫關鍵影格
             keyframes: {
               slideUp: {
-                '0%': { transform: 'translateY(100%)', opacity: '0' },
+                '0%': { transform: 'translateY(100%)', opacity: '0' }, // 從下方滑入
                 '100%': { transform: 'translateY(0)', opacity: '1' },
               },
               fadeIn: {
-                '0%': { opacity: '0' },
+                '0%': { opacity: '0' }, // 淡入效果
                 '100%': { opacity: '1' },
               }
             },
+            // 註冊動畫名稱與持續時間
             animation: {
-              slideUp: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              slideUp: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)', // 緩動滑入
               fadeIn: 'fadeIn 0.5s ease-out',
             }
           }
         }
       }
     </script>
-  <script type="importmap">
-{
-  "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "xlsx": "https://esm.sh/xlsx@^0.18.5",
-    "jszip": "https://esm.sh/jszip@^3.10.1"
-  }
-}
-</script>
-<style>
-  body {
-    /* Fluid gradient background */
-    background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #e0e7ff 100%);
-    background-attachment: fixed;
-  }
-  /* Custom scrollbar for glass look */
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(15, 118, 110, 0.2);
-    border-radius: 10px;
-  }
-</style>
-</head>
+    
+    <!-- Import Maps: 定義 ES Module 的依賴路徑 -->
+    <script type="importmap">
+    {
+      "imports": {
+        "lucide-react": "https://esm.sh/lucide-react@^0.562.0", // 圖示庫
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "react": "https://esm.sh/react@^19.2.3",
+        "xlsx": "https://esm.sh/xlsx@^0.18.5", // Excel 處理
+        "jszip": "https://esm.sh/jszip@^3.10.1" // 壓縮檔處理
+      }
+    }
+    </script>
+    
+    <style>
+      body {
+        /* 全域流體漸層背景 (Fluid Gradient Background) */
+        /* 這也是 Glassmorphism 風格的基礎，讓半透明卡片下方有顏色變化 */
+        background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #e0e7ff 100%);
+        background-attachment: fixed; /* 背景固定，不隨捲動移動 */
+      }
+      
+      /* 自定義捲軸樣式，使其更細緻並符合毛玻璃風格 */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(15, 118, 110, 0.2);
+        border-radius: 10px;
+      }
+    </style>
+  </head>
   <body class="text-slate-800 overscroll-none touch-pan-y antialiased selection:bg-cyan-200 selection:text-cyan-900">
-    <!-- Decorative background blobs -->
+    <!-- 裝飾性背景光暈 (Decorative Blobs) -->
+    <!--這兩個 div 負責產生背景中模糊的色塊，增強毛玻璃的透視感 -->
     <div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-200/30 blur-[80px] pointer-events-none z-[-1]"></div>
     <div class="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-200/30 blur-[100px] pointer-events-none z-[-1]"></div>
     
+    <!-- React 應用程式掛載點 -->
     <div id="root" class="h-full min-h-screen relative"></div>
+    
+    <!-- 載入主程式邏輯 -->
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>
