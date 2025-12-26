@@ -51,7 +51,6 @@ const App: React.FC = () => {
       alert("請填寫所有欄位");
       return;
     }
-    // Simple validation for YYYYMM
     if (!/^\d{6}$/.test(newProjectMonth)) {
       alert("請款月份格式錯誤，應為 YYYYMM");
       return;
@@ -79,7 +78,7 @@ const App: React.FC = () => {
       try {
         const data = JSON.parse(event.target?.result as string) as ProjectData;
         if (data.name && data.records) {
-           await saveProjectToDB(data); // Save immediately to IDB
+           await saveProjectToDB(data);
            setProject(data);
            setView(ViewState.PROJECT_LIST);
         } else {
@@ -90,7 +89,7 @@ const App: React.FC = () => {
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; // reset
+    e.target.value = ''; 
   };
 
   const handleExportJSON = () => {
@@ -116,20 +115,16 @@ const App: React.FC = () => {
       
       const spreadsheetData: any[] = [];
 
-      // Process Images & Metadata
       for (let i = 0; i < project.records.length; i++) {
         const rec = project.records[i];
         const displayId = (i + 1).toString().padStart(3, '0');
         const fileName = `${displayId}_${rec.workItem}.jpg`;
         
-        // Generate Watermark
         const watermarkedDataUrl = await generateWatermark(rec.originalImage, rec, project.name);
         
-        // Add to Zip (remove data:image/jpeg;base64, prefix)
         const imgData = watermarkedDataUrl.split(',')[1];
         folder?.file(fileName, imgData, { base64: true });
 
-        // Add to Excel Row
         spreadsheetData.push({
           '編號': displayId,
           '案場名稱': project.name,
@@ -141,7 +136,6 @@ const App: React.FC = () => {
         });
       }
 
-      // Generate Excel
       const ws = XLSX.utils.json_to_sheet(spreadsheetData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "施工紀錄");
@@ -149,7 +143,6 @@ const App: React.FC = () => {
       
       folder?.file("施工統計表.xlsx", excelBuffer);
 
-      // Download Zip
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
@@ -198,55 +191,68 @@ const App: React.FC = () => {
   // --- Views ---
 
   if (isLoading) {
-    return <div className="h-screen flex items-center justify-center text-xl font-bold text-primary">載入中...</div>;
+    return (
+      <div className="h-screen flex items-center justify-center">
+         <div className="bg-white/30 backdrop-blur-md p-6 rounded-2xl shadow-xl border border-white/50">
+            <div className="text-xl font-bold text-slate-700 animate-pulse">處理中...</div>
+         </div>
+      </div>
+    );
   }
 
-  // 1. Home View
+  // 1. Home View (Glassmorphism)
   if (view === ViewState.HOME) {
     return (
-      <div className="h-screen p-6 flex flex-col items-center justify-center bg-white border-[6px] border-secondary rounded-xl m-2">
-        <h1 className="text-4xl font-bold mb-2 text-slate-900 tracking-wider">施工照片記錄</h1>
-        <p className="text-xl text-slate-500 mb-12">合煜消防</p>
+      <div className="h-screen flex flex-col items-center justify-center p-6 animate-fadeIn">
+        <div className="w-full max-w-md bg-white/40 backdrop-blur-xl border border-white/50 shadow-2xl rounded-3xl p-8 flex flex-col items-center">
+          {/* Logo / Title */}
+          <div className="mb-10 text-center">
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-700 to-blue-700 tracking-wide mb-2 drop-shadow-sm">
+              施工照片記錄
+            </h1>
+            <p className="text-lg text-slate-600 font-medium tracking-widest uppercase">合煜消防</p>
+          </div>
 
-        <div className="w-full max-w-sm space-y-6">
-          <label className="block w-full">
-             <div className="w-full border-2 border-secondary rounded-lg p-6 flex items-center justify-center text-xl font-bold text-slate-800 cursor-pointer active:bg-slate-100 shadow-sm transition-transform active:scale-95">
-               <FolderOpen className="mr-3" />
-               開啟舊專案
-             </div>
-             <input type="file" accept=".json" onChange={handleOpenProject} className="hidden" />
-          </label>
+          <div className="w-full space-y-5">
+            <label className="block w-full group cursor-pointer">
+               <div className="w-full bg-white/50 hover:bg-white/70 border border-white/60 rounded-2xl p-5 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm transition-all duration-300 group-active:scale-[0.98]">
+                 <FolderOpen className="mr-3 text-cyan-600" />
+                 開啟舊專案
+               </div>
+               <input type="file" accept=".json" onChange={handleOpenProject} className="hidden" />
+            </label>
 
-          <button 
-            onClick={() => setShowNewProjectDialog(true)}
-            className="w-full border-2 border-secondary rounded-lg p-6 flex items-center justify-center text-xl font-bold text-slate-800 active:bg-slate-100 shadow-sm transition-transform active:scale-95"
-          >
-            <FilePlus className="mr-3" />
-            建立新專案
-          </button>
+            <button 
+              onClick={() => setShowNewProjectDialog(true)}
+              className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-2xl p-5 flex items-center justify-center text-lg font-bold shadow-lg shadow-cyan-500/30 transition-all duration-300 active:scale-[0.98]"
+            >
+              <FilePlus className="mr-3" />
+              建立新專案
+            </button>
+          </div>
         </div>
 
-        {/* New Project Dialog */}
+        {/* New Project Dialog (Glass Modal) */}
         {showNewProjectDialog && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg w-11/12 max-w-md shadow-xl">
-              <h3 className="text-xl font-bold mb-4">建立新專案</h3>
-              <div className="space-y-4">
+          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
+            <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl w-11/12 max-w-md shadow-2xl border border-white/60 animate-slideUp">
+              <h3 className="text-xl font-bold mb-6 text-slate-800 text-center">建立新專案</h3>
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium mb-1">案場名稱</label>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">案場名稱</label>
                   <input 
                     type="text" 
-                    className="w-full border p-2 rounded"
+                    className="w-full bg-white/50 border border-white/60 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200/50 rounded-xl p-3 outline-none transition-all placeholder:text-slate-400"
                     value={newProjectName}
                     onChange={e => setNewProjectName(e.target.value)}
                     placeholder="例如：理仁柏舍"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">請款月份 (YYYYMM)</label>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">請款月份 (YYYYMM)</label>
                   <input 
                     type="text" 
-                    className="w-full border p-2 rounded"
+                    className="w-full bg-white/50 border border-white/60 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200/50 rounded-xl p-3 outline-none transition-all placeholder:text-slate-400"
                     value={newProjectMonth}
                     onChange={e => setNewProjectMonth(e.target.value)}
                     placeholder="例如：202512"
@@ -254,9 +260,19 @@ const App: React.FC = () => {
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button onClick={() => setShowNewProjectDialog(false)} className="px-4 py-2 text-slate-600">取消</button>
-                <button onClick={handleCreateProject} className="px-4 py-2 bg-primary text-white rounded font-bold">建立</button>
+              <div className="flex justify-end gap-3 mt-8">
+                <button 
+                  onClick={() => setShowNewProjectDialog(false)} 
+                  className="px-6 py-3 rounded-xl text-slate-600 hover:bg-slate-100/50 font-medium transition-colors"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={handleCreateProject} 
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl font-bold shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/40 transition-all"
+                >
+                  建立
+                </button>
               </div>
             </div>
           </div>
@@ -265,66 +281,75 @@ const App: React.FC = () => {
     );
   }
 
-  // 2. Project List View
+  // 2. Project List View (Glassmorphism)
   if (view === ViewState.PROJECT_LIST && project) {
     return (
-      <div className="h-screen flex flex-col bg-gray-50 border-[6px] border-secondary rounded-xl m-2 overflow-hidden relative">
-        {/* Header */}
-        <div className="bg-white border-b-2 border-secondary p-4 flex justify-between items-center shrink-0">
-          <h2 className="text-lg font-bold text-slate-800 truncate max-w-[50%]">
-            [{project.name}]_[{project.month}]
+      <div className="h-screen flex flex-col overflow-hidden relative animate-fadeIn">
+        {/* Header - Transparent Glass */}
+        <div className="bg-white/60 backdrop-blur-md border-b border-white/40 pt-safe-top pb-3 px-4 flex justify-between items-center shrink-0 z-10 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-800 truncate max-w-[50%] bg-white/40 px-3 py-1 rounded-lg border border-white/50">
+            {project.name} <span className="text-slate-400 text-sm">|</span> {project.month}
           </h2>
           <div className="flex gap-2">
             <button 
               onClick={handleExportJSON}
-              className="p-2 text-green-700 hover:bg-green-50 rounded border border-green-700 flex items-center"
-              title="儲存專案 (JSON)"
+              className="p-2.5 rounded-full bg-emerald-100/50 text-emerald-700 hover:bg-emerald-200/50 border border-emerald-200/50 backdrop-blur-sm transition-all"
+              title="儲存專案"
             >
-              <Save size={24} />
+              <Save size={20} />
             </button>
             <button 
               onClick={handleExportZip}
-              className="p-2 text-blue-700 hover:bg-blue-50 rounded border border-blue-700 flex items-center"
-              title="匯出照片與報表 (ZIP)"
+              className="p-2.5 rounded-full bg-blue-100/50 text-blue-700 hover:bg-blue-200/50 border border-blue-200/50 backdrop-blur-sm transition-all"
+              title="匯出"
             >
-               <FileDown size={24} />
+               <FileDown size={20} />
             </button>
             <button 
               onClick={() => setShowExitDialog(true)}
-              className="p-2 text-red-700 hover:bg-red-50 rounded border border-red-700 flex items-center"
+              className="p-2.5 rounded-full bg-rose-100/50 text-rose-700 hover:bg-rose-200/50 border border-rose-200/50 backdrop-blur-sm transition-all"
               title="退出"
             >
-              <LogOut size={24} />
+              <LogOut size={20} />
             </button>
           </div>
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
           {project.records.length === 0 ? (
-            <div className="text-center text-slate-400 mt-20">
-              尚無紀錄，請點擊右下角新增
+            <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
+               <div className="w-20 h-20 bg-white/30 rounded-full flex items-center justify-center mb-4">
+                 <CameraOffIcon />
+               </div>
+              <p className="text-lg font-medium">尚無紀錄</p>
+              <p className="text-sm">點擊右下角按鈕新增照片</p>
             </div>
           ) : (
             project.records.map((record, index) => (
               <div 
                 key={record.id}
                 onClick={() => { setEditingRecord(record); setView(ViewState.EDIT_RECORD); }}
-                className="bg-white border-2 border-secondary rounded-lg p-2 flex gap-3 h-24 items-center shadow-sm active:bg-gray-50"
+                className="group bg-white/60 backdrop-blur-md border border-white/60 rounded-2xl p-3 flex gap-4 items-center shadow-sm hover:shadow-md hover:bg-white/80 transition-all active:scale-[0.99] cursor-pointer"
               >
                 {/* Thumbnail */}
-                <div className="h-20 w-20 bg-gray-200 shrink-0 border border-red-500 overflow-hidden flex items-center justify-center">
+                <div className="h-20 w-20 bg-slate-100 shrink-0 rounded-xl overflow-hidden shadow-inner border border-white/50 relative">
                   <img src={record.originalImage} alt="thumbnail" className="h-full w-full object-cover" />
+                  <div className="absolute top-0 left-0 bg-black/40 px-1.5 py-0.5 rounded-br-lg text-[10px] text-white font-mono">
+                    {String(index + 1).padStart(2, '0')}
+                  </div>
                 </div>
                 {/* Info */}
-                <div className="flex flex-col justify-center h-full">
-                  <span className="font-bold text-lg text-slate-800">
-                    [{String(index + 1).padStart(3, '0')}]_[{formatLocationString(record.location)}]
+                <div className="flex flex-col justify-center h-full min-w-0">
+                  <span className="font-bold text-slate-800 text-lg truncate mb-1">
+                    {formatLocationString(record.location)}
                   </span>
-                  <span className="text-sm text-slate-600 truncate">
-                    {record.workItem === '其他' ? record.workItemCustom : record.workItem}
-                  </span>
-                   <span className="text-xs text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-cyan-700 bg-cyan-50/50 px-2 py-0.5 rounded-md border border-cyan-100/50 truncate">
+                      {record.workItem === '其他' ? record.workItemCustom : record.workItem}
+                    </span>
+                  </div>
+                   <span className="text-xs text-slate-400 mt-1 flex items-center gap-1">
                     {record.date}
                   </span>
                 </div>
@@ -336,33 +361,33 @@ const App: React.FC = () => {
         {/* FAB */}
         <button 
           onClick={() => { setEditingRecord(undefined); setView(ViewState.EDIT_RECORD); }}
-          className="absolute bottom-6 right-6 bg-white border-2 border-secondary text-secondary rounded-full p-2 shadow-lg hover:scale-105 active:scale-95 transition-all"
+          className="absolute bottom-8 right-6 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full p-4 shadow-lg shadow-cyan-500/40 hover:scale-110 active:scale-95 transition-all z-20 border-4 border-white/30 backdrop-blur-sm"
         >
-          <Plus size={40} strokeWidth={3} />
+          <Plus size={32} strokeWidth={3} />
         </button>
 
         {/* Exit Dialog */}
         {showExitDialog && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl">
-              <h3 className="text-xl font-bold mb-4">確認退出</h3>
-              <p className="mb-6 text-slate-600">您的專案狀態目前暫存在瀏覽器中。若未下載JSON檔案，清除瀏覽器資料可能會導致遺失。</p>
+          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 px-4 animate-fadeIn">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-white/60 animate-slideUp">
+              <h3 className="text-xl font-bold mb-4 text-slate-800 text-center">確認退出</h3>
+              <p className="mb-6 text-slate-600 text-center text-sm leading-relaxed">您的專案狀態暫存於此裝置。若未下載JSON檔案，清除瀏覽器資料可能會導致紀錄遺失。</p>
               <div className="flex flex-col gap-3">
                 <button 
                   onClick={() => handleExit(true)}
-                  className="w-full py-3 bg-green-600 text-white rounded font-bold"
+                  className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-transform"
                 >
-                  儲存並退出 (下載專案檔)
+                  儲存並退出 (下載檔案)
                 </button>
                 <button 
                   onClick={() => handleExit(false)}
-                  className="w-full py-3 bg-red-600 text-white rounded font-bold"
+                  className="w-full py-3.5 bg-white/50 text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-xl font-bold transition-colors"
                 >
                   不儲存退出
                 </button>
                 <button 
                   onClick={() => setShowExitDialog(false)}
-                  className="w-full py-3 border border-slate-300 rounded text-slate-600"
+                  className="w-full py-3.5 text-slate-500 hover:text-slate-800 transition-colors text-sm"
                 >
                   取消
                 </button>
@@ -374,10 +399,10 @@ const App: React.FC = () => {
     );
   }
 
-  // 3. Edit View (Modal style)
+  // 3. Edit View (Full Screen Glass)
   if (view === ViewState.EDIT_RECORD) {
     return (
-      <div className="bg-gray-50 border-[6px] border-secondary rounded-xl m-2 h-screen overflow-hidden relative">
+      <div className="h-screen w-full relative bg-white/30 backdrop-blur-xl animate-fadeIn">
         <RecordEditor 
           initialData={editingRecord}
           onSave={saveRecord}
@@ -390,5 +415,9 @@ const App: React.FC = () => {
 
   return null;
 };
+
+const CameraOffIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-camera-off opacity-50"><line x1="2" x2="22" y1="2" y2="22"/><path d="M7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16"/><path d="M9.5 4h5L17 7h3a2 2 0 0 1 2 2v7.5"/><path d="M14.121 15.121A3 3 0 1 1 9.88 10.88"/></svg>
+);
 
 export default App;

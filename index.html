@@ -11,17 +11,26 @@
         theme: {
           extend: {
             colors: {
-              primary: '#0e7490', // Cyan-700
-              secondary: '#164e63', // Cyan-900
+              glass: 'rgba(255, 255, 255, 0.25)',
+              glassBorder: 'rgba(255, 255, 255, 0.5)',
+              primary: '#0e7490',
+            },
+            backdropBlur: {
+              xs: '2px',
             },
             keyframes: {
               slideUp: {
-                '0%': { transform: 'translateY(100%)' },
-                '100%': { transform: 'translateY(0)' },
+                '0%': { transform: 'translateY(100%)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+              },
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
               }
             },
             animation: {
-              slideUp: 'slideUp 0.3s ease-out',
+              slideUp: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              fadeIn: 'fadeIn 0.5s ease-out',
             }
           }
         }
@@ -39,9 +48,31 @@
   }
 }
 </script>
+<style>
+  body {
+    /* Fluid gradient background */
+    background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #e0e7ff 100%);
+    background-attachment: fixed;
+  }
+  /* Custom scrollbar for glass look */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(15, 118, 110, 0.2);
+    border-radius: 10px;
+  }
+</style>
 </head>
-  <body class="bg-gray-50 text-slate-900 overscroll-none touch-pan-y">
-    <div id="root" class="h-full min-h-screen"></div>
+  <body class="text-slate-800 overscroll-none touch-pan-y antialiased selection:bg-cyan-200 selection:text-cyan-900">
+    <!-- Decorative background blobs -->
+    <div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-200/30 blur-[80px] pointer-events-none z-[-1]"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-200/30 blur-[100px] pointer-events-none z-[-1]"></div>
+    
+    <div id="root" class="h-full min-h-screen relative"></div>
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>

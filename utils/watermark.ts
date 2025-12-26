@@ -43,13 +43,20 @@ export const generateWatermark = async (
       ctx.drawImage(img, 0, 0);
 
       // --- Watermark Configuration ---
-      // Scale font based on image width (assuming mobile photos are large ~2000px+)
-      // Base scale on width=1000px -> font=24px
+      // Original Scale Factor was canvas.width / 1000.
+      // Target: Height ~ 2/3, Width ~ 3/4.
+      
+      // We reduce the font size to reduce height significantly.
+      // Previous font size base was 24. New target is approx 16 (2/3).
+      // We reduce the label width to reduce overall width.
+      
       const scaleFactor = canvas.width / 1000;
-      const fontSize = Math.max(16, Math.floor(24 * scaleFactor));
-      const lineHeight = Math.floor(fontSize * 1.4);
-      const padding = Math.floor(20 * scaleFactor);
-      const cellPadding = Math.floor(10 * scaleFactor);
+      
+      // Configuration for smaller watermark
+      const fontSize = Math.max(12, Math.floor(16 * scaleFactor)); // Reduced from 24 -> 16
+      const lineHeight = Math.floor(fontSize * 1.3); // Tighter line height
+      const padding = Math.floor(12 * scaleFactor); // Reduced padding from 20 -> 12
+      const cellPadding = Math.floor(6 * scaleFactor); // Reduced cell padding from 10 -> 6
       
       const rows = [
         { label: '工程名稱', value: `${projectName} 消防工程` },
@@ -61,7 +68,9 @@ export const generateWatermark = async (
 
       // Calculate table dimensions
       ctx.font = `bold ${fontSize}px Arial`;
-      const labelWidth = Math.floor(120 * scaleFactor); // Fixed width for labels
+      
+      // Reduced fixed label width (was 120 -> 90 ~ 3/4)
+      const labelWidth = Math.floor(90 * scaleFactor); 
       
       // Calculate max width needed for values
       let maxTextWidth = 0;
@@ -77,13 +86,13 @@ export const generateWatermark = async (
       const startX = padding;
       const startY = canvas.height - tableHeight - padding;
 
-      // Draw Semi-transparent Background
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      // Draw Semi-transparent Background (White Glass)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // Slightly more opaque for readability
       ctx.fillRect(startX, startY, tableWidth, tableHeight);
       
       // Draw Border
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2 * scaleFactor;
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.lineWidth = 1.5 * scaleFactor;
       ctx.strokeRect(startX, startY, tableWidth, tableHeight);
 
       // Draw Text
@@ -98,22 +107,9 @@ export const generateWatermark = async (
         ctx.font = `bold ${fontSize}px Arial`;
         ctx.fillText(row.label, startX + cellPadding, rowY);
 
-        // Separator Line (Vertical)
-        // ctx.beginPath();
-        // ctx.moveTo(startX + labelWidth + cellPadding, startY);
-        // ctx.lineTo(startX + labelWidth + cellPadding, startY + tableHeight);
-        // ctx.stroke();
-
         // Value
         ctx.font = `${fontSize}px Arial`;
         ctx.fillText(row.value, startX + labelWidth + (cellPadding * 2), rowY);
-        
-        // Horizontal Grid lines (except last)
-        if (index < rows.length - 1) {
-           // ctx.beginPath();
-           // ctx.moveTo(startX, startY + (index + 1) * (lineHeight + cellPadding)); // Simplified grid logic needed? 
-           // Let's keep it simple: text on box.
-        }
       });
 
       resolve(canvas.toDataURL('image/jpeg', 0.85));
