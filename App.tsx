@@ -446,6 +446,21 @@ const App: React.FC = () => {
   if (view === ViewState.PROJECT_LIST && project) {
     const isFirestop = project.type === 'FIRESTOP';
     
+    // 排序紀錄：1. displayId (字串) 2. workItem (施工前 < 施工後)
+    const sortedRecords = [...project.records].sort((a, b) => {
+        const idA = a.displayId || '0';
+        const idB = b.displayId || '0';
+        // 第一層：比較 ID
+        if (idA !== idB) return idA.localeCompare(idB);
+        
+        // 第二層：如果 ID 相同，比較施工項目 (僅對防火填塞有效)
+        if (isFirestop) {
+            if (a.workItem === '施工前' && b.workItem === '施工後') return -1;
+            if (a.workItem === '施工後' && b.workItem === '施工前') return 1;
+        }
+        return 0;
+    });
+
     return (
       <div className={`h-screen flex flex-col overflow-hidden relative animate-fadeIn ${appBgClass}`}>
         {/* 裝飾光暈 - 根據專案類型變色 */}
@@ -500,7 +515,7 @@ const App: React.FC = () => {
               <p className="text-sm">點擊右下角按鈕新增照片</p>
             </div>
           ) : (
-            project.records.map((record, index) => {
+            sortedRecords.map((record, index) => {
                const displayId = record.displayId || (index + 1).toString().padStart(3, '0');
                const isPostConstruction = record.workItem === '施工後';
 

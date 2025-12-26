@@ -39,6 +39,9 @@ const RecordEditor: React.FC<Props> = ({
   // 決定使用哪個選項清單 (一般專案用)
   const currentWorkItems = WORK_ITEMS;
   const isFirestop = projectType === 'FIRESTOP';
+  
+  // 判斷是否為「新增施工後」模式 (即透過 defaultValues 指定了施工後)
+  const isAddPostConstructionMode = defaultValues?.workItem === '施工後';
 
   // --- 狀態管理 ---
   // 圖片 (Base64) - 圖片不繼承，必須重拍
@@ -62,11 +65,15 @@ const RecordEditor: React.FC<Props> = ({
   );
   
   // 施工項目與自定義項目
-  // 優先順序: 編輯資料 > 特殊預設值(新增施工後) > 上一筆紀錄(繼承) > 預設第一項
+  // 優先順序: 
+  // 1. 編輯資料 (initialData)
+  // 2. 特殊預設值 (defaultValues - 新增施工後)
+  // 3. 上一筆紀錄 (lastRecord - 僅限一般專案繼承，防火填塞不繼承工項)
+  // 4. 預設值 (防火填塞預設為「施工前」)
   const [workItem, setWorkItem] = useState<string>(
     initialData?.workItem || 
     defaultValues?.workItem ||
-    lastRecord?.workItem || 
+    (!isFirestop ? lastRecord?.workItem : undefined) || // 防火填塞不繼承上一筆的工項
     (isFirestop ? FIRESTOP_WORK_ITEMS[0] : WORK_ITEMS[0])
   );
   
@@ -246,11 +253,19 @@ const RecordEditor: React.FC<Props> = ({
               /* 防火填塞：左右按鈕選擇 */
               <div className="flex gap-4">
                 <button 
-                  onClick={() => setWorkItem('施工前')}
-                  className={`flex-1 py-4 px-4 rounded-xl border font-bold transition-all relative overflow-hidden ${workItem === '施工前' ? 'bg-cyan-600 border-cyan-600 text-white shadow-lg shadow-cyan-500/30 scale-[1.02]' : 'bg-white/50 border-white/60 text-slate-600 hover:bg-white/80'}`}
+                  onClick={() => !isAddPostConstructionMode && setWorkItem('施工前')}
+                  disabled={isAddPostConstructionMode} // 如果是新增施工後模式，鎖定施工前按鈕
+                  className={`flex-1 py-4 px-4 rounded-xl border font-bold transition-all relative overflow-hidden 
+                    ${isAddPostConstructionMode 
+                      ? 'bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed' // 反灰樣式
+                      : (workItem === '施工前' 
+                          ? 'bg-cyan-600 border-cyan-600 text-white shadow-lg shadow-cyan-500/30 scale-[1.02]' 
+                          : 'bg-white/50 border-white/60 text-slate-600 hover:bg-white/80'
+                        )
+                    }`}
                 >
                   施工前
-                  {workItem === '施工前' && <div className="absolute right-2 top-2"><Check size={16} /></div>}
+                  {workItem === '施工前' && !isAddPostConstructionMode && <div className="absolute right-2 top-2"><Check size={16} /></div>}
                 </button>
                 <button 
                   onClick={() => setWorkItem('施工後')}
