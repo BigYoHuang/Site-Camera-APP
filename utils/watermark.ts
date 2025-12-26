@@ -1,0 +1,124 @@
+import { RecordItem, ProjectData, LocationData } from '../types';
+
+export const formatLocationString = (loc: LocationData): string => {
+  let parts = [];
+  if (loc.building) parts.push(`${loc.building}棟`);
+  
+  let floorStr = '';
+  if (loc.floorStart) {
+    floorStr += `${loc.floorStart}F`;
+    if (loc.floorEnd) {
+      floorStr += `~${loc.floorEnd}F`;
+    }
+  } else if (loc.floorEnd) {
+    floorStr += `${loc.floorEnd}F`;
+  }
+  if (floorStr) parts.push(floorStr);
+  
+  if (loc.details) parts.push(loc.details);
+  
+  return parts.join(' ');
+};
+
+export const generateWatermark = async (
+  base64Image: string,
+  record: RecordItem,
+  projectName: string
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject('No context');
+        return;
+      }
+
+      // Set canvas size to match image
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      // Draw original image
+      ctx.drawImage(img, 0, 0);
+
+      // --- Watermark Configuration ---
+      // Scale font based on image width (assuming mobile photos are large ~2000px+)
+      // Base scale on width=1000px -> font=24px
+      const scaleFactor = canvas.width / 1000;
+      const fontSize = Math.max(16, Math.floor(24 * scaleFactor));
+      const lineHeight = Math.floor(fontSize * 1.4);
+      const padding = Math.floor(20 * scaleFactor);
+      const cellPadding = Math.floor(10 * scaleFactor);
+      
+      const rows = [
+        { label: '工程名稱', value: `${projectName} 消防工程` },
+        { label: '施工位置', value: formatLocationString(record.location) },
+        { label: '施工項目', value: record.workItem === '其他' ? (record.workItemCustom || '其他') : record.workItem },
+        { label: '施工日期', value: record.date },
+        { label: '備註', value: record.note || '-' },
+      ];
+
+      // Calculate table dimensions
+      ctx.font = `bold ${fontSize}px Arial`;
+      const labelWidth = Math.floor(120 * scaleFactor); // Fixed width for labels
+      
+      // Calculate max width needed for values
+      let maxTextWidth = 0;
+      rows.forEach(row => {
+        const w = ctx.measureText(row.value).width;
+        if (w > maxTextWidth) maxTextWidth = w;
+      });
+      
+      const tableWidth = labelWidth + maxTextWidth + (cellPadding * 3);
+      const tableHeight = (rows.length * lineHeight) + (cellPadding * (rows.length + 1));
+
+      // Position: Bottom Left
+      const startX = padding;
+      const startY = canvas.height - tableHeight - padding;
+
+      // Draw Semi-transparent Background
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fillRect(startX, startY, tableWidth, tableHeight);
+      
+      // Draw Border
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2 * scaleFactor;
+      ctx.strokeRect(startX, startY, tableWidth, tableHeight);
+
+      // Draw Text
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#000000';
+
+      rows.forEach((row, index) => {
+        const rowY = startY + cellPadding + (index * lineHeight) + (lineHeight / 2);
+        
+        // Label
+        ctx.textAlign = 'left';
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.fillText(row.label, startX + cellPadding, rowY);
+
+        // Separator Line (Vertical)
+        // ctx.beginPath();
+        // ctx.moveTo(startX + labelWidth + cellPadding, startY);
+        // ctx.lineTo(startX + labelWidth + cellPadding, startY + tableHeight);
+        // ctx.stroke();
+
+        // Value
+        ctx.font = `${fontSize}px Arial`;
+        ctx.fillText(row.value, startX + labelWidth + (cellPadding * 2), rowY);
+        
+        // Horizontal Grid lines (except last)
+        if (index < rows.length - 1) {
+           // ctx.beginPath();
+           // ctx.moveTo(startX, startY + (index + 1) * (lineHeight + cellPadding)); // Simplified grid logic needed? 
+           // Let's keep it simple: text on box.
+        }
+      });
+
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = reject;
+    img.src = base64Image;
+  });
+};
