@@ -245,7 +245,7 @@ const App: React.FC = () => {
                     className="w-full bg-white/50 border border-white/60 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200/50 rounded-xl p-3 outline-none transition-all placeholder:text-slate-400"
                     value={newProjectName}
                     onChange={e => setNewProjectName(e.target.value)}
-                    placeholder="例如：理仁柏舍"
+                    placeholder=" "
                   />
                 </div>
                 <div>
