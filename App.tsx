@@ -377,20 +377,18 @@ const App: React.FC = () => {
               建立一般專案
             </button>
             
-          </div>
-        </div>
-        
-        {/* 防火填塞入口 - 置於底部 */}
-        <div className="w-full max-w-md mt-6 z-10">
-           <button 
+            {/* 建立防火填塞專案按鈕 (整合到同一區塊) */}
+            <button 
               onClick={() => openNewProjectDialog('FIRESTOP')}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white rounded-2xl p-4 flex items-center justify-center text-lg font-bold shadow-lg shadow-orange-500/30 transition-all duration-300 active:scale-[0.98]"
+              className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white rounded-2xl p-5 flex items-center justify-center text-lg font-bold shadow-lg shadow-orange-500/30 transition-all duration-300 active:scale-[0.98]"
             >
               <Flame className="mr-3" />
               防火填塞
             </button>
+            
+          </div>
         </div>
-
+        
         {/* 建立新專案對話框 (Modal) */}
         {showNewProjectDialog && (
           <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
