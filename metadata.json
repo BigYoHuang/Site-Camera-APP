@@ -1,6 +1,6 @@
 {
-  "name": "整合APP",
-  "description": "A professional construction site photo logging application allowing users to mark locations on floor plans, take photos, and export structured data.",
+  "name": "Construction Photo Log",
+  "description": "A mobile-first app for construction site photo documentation with watermarking and export capabilities.",
   "requestFramePermissions": [
     "camera"
   ]

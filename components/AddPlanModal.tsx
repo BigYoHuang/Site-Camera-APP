@@ -1,3 +1,0 @@
-// 警告：此檔案是多餘的。
-// 請使用 src/components/AddPlanModal.tsx
-export default () => null;
