@@ -1,22 +1,21 @@
 import React, { useRef, useState } from 'react';
-import { Trash2, ImageIcon, X, FolderOpen, Loader2 } from 'lucide-react';
+import { Trash2, ImageIcon, X, FolderOpen, Loader2, ArrowLeft } from 'lucide-react';
 import { ProjectInfo, FloorPlan } from '../types';
 
 interface SetupScreenProps {
   projectInfo: ProjectInfo;
   setProjectInfo: React.Dispatch<React.SetStateAction<ProjectInfo>>;
-  onFileUpload: (newPlans: FloorPlan[]) => void; // 更新型別定義
+  onFileUpload: (newPlans: FloorPlan[]) => void;
   onUpdatePlanName: (idx: number, name: string) => void;
   onRemovePlan: (idx: number) => void;
   onStart: () => void;
   onReset: () => void;
   onLoadProject: (file: File) => void;
   isZipLoaded: boolean;
-  isPDFLoaded: boolean; // 傳入 PDF 載入狀態
+  isPDFLoaded: boolean;
+  onExit?: () => void; // 新增 Optional 屬性
 }
 
-// --- 設定頁面元件 ---
-// 這是應用程式的第一個畫面，讓使用者輸入專案名稱並上傳平面圖
 const SetupScreen: React.FC<SetupScreenProps> = ({
   projectInfo,
   setProjectInfo,
@@ -28,12 +27,12 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
   onLoadProject,
   isZipLoaded,
   isPDFLoaded,
+  onExit
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const projectInputRef = useRef<HTMLInputElement>(null);
-  const [isProcessing, setIsProcessing] = useState(false); // PDF 處理中狀態
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // 處理檔案上傳 (圖片或 PDF)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
@@ -45,7 +44,6 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
     try {
       for (const file of files) {
         if (file.type === 'application/pdf') {
-          // --- 處理 PDF 檔案 ---
           if (!isPDFLoaded || !window.pdfjsLib) {
             alert('PDF 模組尚未載入，請稍後再試');
             continue;
@@ -55,14 +53,11 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await window.pdfjsLib.getDocument(arrayBuffer).promise;
             
-            // 遍歷每一頁
             for (let i = 1; i <= pdf.numPages; i++) {
               const page = await pdf.getPage(i);
-              // 設定 2倍縮放，確保轉出的圖片夠清晰
               const scale = 2.0; 
               const viewport = page.getViewport({ scale });
               
-              // 建立 Canvas 進行繪製
               const canvas = document.createElement('canvas');
               const context = canvas.getContext('2d');
               canvas.height = viewport.height;
@@ -74,13 +69,11 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
                   viewport: viewport,
                 }).promise;
 
-                // Canvas 轉 Blob
                 const blob = await new Promise<Blob | null>((resolve) => 
                   canvas.toBlob(resolve, 'image/jpeg', 0.9)
                 );
 
                 if (blob) {
-                  // 將 Blob 轉為 File 物件
                   const imgFile = new File([blob], `${file.name}_Page${i}.jpg`, { type: 'image/jpeg' });
                   newPlans.push({
                     id: Date.now() + Math.random(),
@@ -97,7 +90,6 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
           }
 
         } else if (file.type.startsWith('image/')) {
-          // --- 處理一般圖片 ---
           newPlans.push({
             id: Date.now() + Math.random(),
             name: file.name.replace(/\.[^/.]+$/, ''),
@@ -107,7 +99,6 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
         }
       }
 
-      // 透過 callback 更新狀態
       if (newPlans.length > 0) {
         onFileUpload(newPlans);
       }
@@ -117,15 +108,20 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
       alert('檔案處理發生錯誤');
     } finally {
       setIsProcessing(false);
-      // 清空 input 讓同檔名可再次選取
       e.target.value = '';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center relative">
+      {/* 只有在傳入 onExit 時才顯示返回按鈕 */}
+      {onExit && (
+        <button onClick={onExit} className="absolute top-6 left-6 p-2 rounded-full bg-white hover:bg-gray-200 transition text-gray-600 shadow-sm z-50">
+             <ArrowLeft size={24} />
+        </button>
+      )}
+
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-6 relative">
-        {/* 清除重置按鈕 */}
         <button
           onClick={onReset}
           className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
@@ -135,11 +131,10 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
         </button>
 
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800">工地現場紀錄</h1>
+          <h1 className="text-2xl font-bold text-gray-800">圖面標記估價</h1>
           <p className="text-gray-500 text-sm mt-1">建立新專案 或 開啟舊專案</p>
         </div>
 
-        {/* 開啟舊專案按鈕 */}
         <div className="pb-4 border-b border-gray-100">
           <button
             onClick={() => projectInputRef.current?.click()}
@@ -162,7 +157,6 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
           />
         </div>
 
-        {/* 專案名稱輸入框 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">專案名稱 (新專案)</label>
           <input
@@ -174,7 +168,6 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
           />
         </div>
 
-        {/* 檔案上傳區塊 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">匯入平面圖</label>
           <div
@@ -203,7 +196,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
               ref={fileInputRef}
               type="file"
               multiple
-              accept="image/*,application/pdf" // 增加 PDF 支援
+              accept="image/*,application/pdf"
               className="hidden"
               onChange={handleFileChange}
               disabled={isProcessing}
@@ -211,7 +204,6 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
           </div>
         </div>
 
-        {/* 已上傳平面圖列表 */}
         <div className="space-y-3 max-h-60 overflow-y-auto">
           {projectInfo.floorPlans.map((plan, idx) => (
             <div key={plan.id} className="flex items-center bg-white border border-gray-200 p-3 rounded-lg shadow-sm">
@@ -234,7 +226,6 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
           ))}
         </div>
 
-        {/* 開始按鈕 */}
         <button
           onClick={onStart}
           disabled={!projectInfo.name || projectInfo.floorPlans.length === 0 || isProcessing}
