@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Camera, Map, ChevronRight } from 'lucide-react';
 import PhotoLoggerApp from './PhotoLoggerApp';
-import MapEstimatorApp from './apps/map-estimator/App';
+import MapEstimatorApp from './App'; // 原本的 App.tsx 是工地現場紀錄 (Map Estimator)
 
 type AppType = 'launcher' | 'photo-logger' | 'map-estimator';
 
@@ -19,49 +19,66 @@ const Launcher: React.FC = () => {
 
   // Launcher 主介面
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-wider">合煜消防</h1>
-          <p className="text-slate-400">應用程式總覽</p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+      
+      {/* 背景光暈特效 */}
+      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-200/30 blur-[80px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '8s' }}></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-cyan-200/30 blur-[100px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '10s' }}></div>
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-600 tracking-wide mb-2 drop-shadow-sm">
+            合煜消防
+          </h1>
+          <p className="text-lg text-slate-500 font-medium tracking-widest uppercase">應用程式總覽</p>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           {/* APP 1: 施工照片紀錄 */}
           <button
             onClick={() => setCurrentApp('photo-logger')}
-            className="group relative flex items-center p-5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all active:scale-[0.98] overflow-hidden"
+            className="group relative flex items-center p-6 bg-white/60 backdrop-blur-xl border border-white/60 hover:bg-white/80 rounded-3xl shadow-xl shadow-indigo-100/50 transition-all duration-300 active:scale-[0.98] overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="h-14 w-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-300">
-              <Camera className="text-white" size={28} />
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            
+            <div className="h-16 w-16 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <Camera className="text-white" size={32} />
             </div>
+            
             <div className="ml-5 text-left flex-1">
-              <h3 className="text-lg font-bold text-white">施工照片紀錄</h3>
-              <p className="text-sm text-slate-400 mt-0.5">列表式拍照、浮水印輸出</p>
+              <h3 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">施工照片紀錄</h3>
+              <p className="text-sm text-slate-500 mt-1 font-medium">列表式拍照、浮水印輸出</p>
             </div>
-            <ChevronRight className="text-slate-500 group-hover:text-white transition-colors" />
+            
+            <div className="h-10 w-10 rounded-full bg-white/50 flex items-center justify-center group-hover:bg-white transition-colors shadow-sm">
+                <ChevronRight className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+            </div>
           </button>
 
           {/* APP 2: 防火填塞圖面標記 */}
           <button
             onClick={() => setCurrentApp('map-estimator')}
-            className="group relative flex items-center p-5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all active:scale-[0.98] overflow-hidden"
+            className="group relative flex items-center p-6 bg-white/60 backdrop-blur-xl border border-white/60 hover:bg-white/80 rounded-3xl shadow-xl shadow-orange-100/50 transition-all duration-300 active:scale-[0.98] overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="h-14 w-14 bg-gradient-to-br from-orange-400 to-red-600 rounded-xl flex items-center justify-center shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-300">
-              <Map className="text-white" size={28} />
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            
+            <div className="h-16 w-16 bg-gradient-to-br from-orange-400 to-red-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <Map className="text-white" size={32} />
             </div>
+            
             <div className="ml-5 text-left flex-1">
-              <h3 className="text-lg font-bold text-white">圖面標記估價</h3>
-              <p className="text-sm text-slate-400 mt-0.5">匯入平面圖、點位標記</p>
+              <h3 className="text-xl font-bold text-slate-800 group-hover:text-orange-600 transition-colors">圖面標記估價</h3>
+              <p className="text-sm text-slate-500 mt-1 font-medium">匯入平面圖、點位標記</p>
             </div>
-            <ChevronRight className="text-slate-500 group-hover:text-white transition-colors" />
+            
+            <div className="h-10 w-10 rounded-full bg-white/50 flex items-center justify-center group-hover:bg-white transition-colors shadow-sm">
+                <ChevronRight className="text-slate-400 group-hover:text-orange-500 transition-colors" />
+            </div>
           </button>
         </div>
         
-        <div className="text-center text-xs text-slate-600 mt-12">
-          v2.0.0 Integrated System
+        <div className="text-center text-xs text-slate-400 mt-12 font-medium">
+          v2.0.2 Integrated System
         </div>
       </div>
     </div>
