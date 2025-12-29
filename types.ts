@@ -1,69 +1,131 @@
-/**
- * 定義應用程式中使用的所有 TypeScript 介面與型別
- */
+// --- MapEstimator App Types ---
 
-// 專案類型定義
+// --- 平面圖介面 ---
+// 儲存單張平面圖的資訊，包含原始檔案與預覽用的 URL
+export interface FloorPlan {
+  id: number;           // 唯一識別碼 (timestamp + random)
+  name: string;         // 圖說名稱 (預設為檔名)
+  file: File;           // 原始圖檔物件 (用於儲存至 DB)
+  src: string;          // 預覽用的 Blob URL
+}
+
+// --- 專案資訊介面 (MapEstimator) ---
+// 整個專案的結構，包含專案名稱與多張平面圖
+export interface ProjectInfo {
+  id?: string;          // IndexedDB 中的 key (通常為 'current')
+  name: string;         // 專案名稱 (如：XX建案)
+  floorPlans: FloorPlan[]; // 此專案包含的所有平面圖
+}
+
+// --- 標記資料介面 ---
+// 使用者在表單中輸入的詳細估價資訊
+export interface MarkerData {
+  floor: string;        // 樓層 (例如: 1, B1, R1)
+  isMezzanine: boolean; // 是否為夾層
+  location: string;     // 位置描述 (例如: 主臥廁所)
+  surfaceType: string;  // 施作面 (單面, 雙面, 腳踩面, 倒吊面)
+  
+  // 特殊狀態 (互斥開關)
+  isIncomplete: boolean; // 不完整
+  noFireBarrier: boolean; // 無防火帶
+
+  // 金屬管數量
+  metal1: string;       // 1英吋
+  metal2: string;       // 2英吋
+  metal3: string;       // 3英吋
+  metal4: string;       // 4英吋
+  metal6: string;       // 6英吋
+
+  // PVC管數量
+  pvc1: string;         // 1英吋
+  pvc2: string;         // 2英吋
+  pvc3: string;         // 3英吋
+  pvc4: string;         // 4英吋
+  pvc6: string;         // 6英吋
+
+  length: string;       // 開口長度
+  width: string;        // 開口寬度
+  tempImage: File | null; // 暫存的現場照片檔案
+}
+
+// --- 標記點介面 ---
+// 在地圖上的一個標記點，包含位置座標與上述的資料
+export interface Marker {
+  id: number;           // 唯一識別碼 (timestamp)
+  planIndex: number;    // 對應到哪一張平面圖 (ProjectInfo.floorPlans 的索引)
+  x: number;            // X軸座標百分比 (0-100%)，確保縮放時位置相對正確
+  y: number;            // Y軸座標百分比 (0-100%)
+  seq: number;          // 流水號 (顯示在標記上的數字)
+  data: MarkerData;     // 詳細資料
+  imageBlob: File;      // 拍攝的照片檔案
+}
+
+// --- 視窗變換介面 ---
+// 控制畫布的移動與縮放狀態
+export interface Transform {
+  x: number;            // X軸位移 (pixels)
+  y: number;            // Y軸位移 (pixels)
+  scale: number;        // 縮放倍率
+}
+
+// --- 圖片尺寸介面 ---
+// 記錄當前平面圖的原始像素尺寸，用於計算相對座標
+export interface ImgDimensions {
+  width: number;
+  height: number;
+}
+
+// --- PhotoLogger App Types ---
+
 export type ProjectType = 'GENERAL' | 'FIRESTOP';
 
-// 施工位置資料結構
-export interface LocationData {
-  building: string;   // 棟 (例如: A)
-  floorStart: string; // 起始樓層 (例如: 1)
-  floorEnd: string;   // 結束樓層 (例如: 5，可選)
-  details: string;    // 詳細位置說明
-}
-
-// 單筆施工紀錄項目
-export interface RecordItem {
-  id: string;             // 唯一識別碼 (通常使用 timestamp 字串)
-  displayId?: string;     // 顯示用的編號 (例如: "001")，用於防火填塞繼承編號
-  timestamp: number;      // 建立時間戳記
-  originalImage: string;  // 原始照片的 Base64 字串
-  watermarkedImage?: string; // (選填) 加浮水印後的 Base64，通常在匯出時產生
-  location: LocationData; // 施工位置物件
-  workItem: string;       // 施工項目名稱 (從下拉選單選擇)
-  workItemCustom?: string;// (選填) 若施工項目選「其他」，此欄位儲存自定義輸入
-  date: string;           // 施工日期 (格式: YYYY-MM-DD)
-  note: string;           // 備註內容
-}
-
-// 整個專案的資料結構
-export interface ProjectData {
-  name: string;        // 案場名稱
-  month: string;       // 請款月份 (格式: YYYYMM)
-  type: ProjectType;   // 專案類型 (一般/防火填塞)
-  records: RecordItem[]; // 包含的所有紀錄列表
-  lastModified: number;  // 最後修改時間
-}
-
-// 應用程式的視圖狀態 (控制目前顯示哪個畫面)
 export enum ViewState {
-  HOME = 'HOME',                 // 首頁 (建立/開啟專案)
-  PROJECT_LIST = 'PROJECT_LIST', // 專案列表頁 (顯示照片清單)
-  EDIT_RECORD = 'EDIT_RECORD'    // 編輯/新增紀錄頁 (拍照與填寫資料)
+  HOME = 'HOME',
+  PROJECT_LIST = 'PROJECT_LIST',
+  EDIT_RECORD = 'EDIT_RECORD'
 }
 
-// 預設的施工項目選單 (一般專案)
+export interface LocationData {
+  building: string;
+  floorStart: string;
+  floorEnd: string;
+  details: string;
+}
+
+export interface RecordItem {
+  id: string;
+  displayId?: string;
+  timestamp: number;
+  originalImage: string; // Base64 string
+  location: LocationData;
+  workItem: string;
+  workItemCustom?: string;
+  date: string;
+  note?: string;
+}
+
+export interface ProjectData {
+  id?: string;
+  name: string;
+  month: string;
+  type: ProjectType;
+  records: RecordItem[];
+  lastModified: number;
+}
+
 export const WORK_ITEMS = [
-  "RC套管放樣",
-  "消防電配管",
-  "火警、廣播平面穿線",
-  "消防廣播幹線完成",
-  "授信、廣播主機安裝",
-  "感知器、喇叭安裝完成",
-  "消防燈具裝置完成",
-  "器具安裝",
-  "消防栓箱組立完成",
-  "消防、泡沫泵浦安裝",
-  "撒水平面配管",
-  "幹(立)管配管",
-  "泡沫、撒水管試壓完成",
-  "排煙設備完成",
-  "其他"
+  '穿管', '放樣', '配管', '試壓', '油漆', '保溫', '穿線', '裝器具', '測試', '其他'
 ];
 
-// 防火填塞專用項目選單
 export const FIRESTOP_WORK_ITEMS = [
-  "施工前",
-  "施工後"
+  '施工前', '施工後'
 ];
+
+// --- 全域型別擴充 ---
+// 為了支援透過 CDN 載入的 JSZip 與 PDF.js
+declare global {
+  interface Window {
+    JSZip: any;
+    pdfjsLib: any;
+  }
+}
