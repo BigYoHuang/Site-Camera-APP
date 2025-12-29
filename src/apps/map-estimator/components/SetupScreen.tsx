@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Trash2, ImageIcon, X, FolderOpen, Loader2, ArrowLeft } from 'lucide-react';
+import { ImageIcon, X, FolderOpen, Loader2, ArrowLeft } from 'lucide-react';
 import { ProjectInfo, FloorPlan } from '../types';
 
 interface SetupScreenProps {
@@ -113,32 +113,31 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center relative">
-      <button onClick={onExit} className="absolute top-6 left-6 p-2 rounded-full bg-white hover:bg-gray-200 transition text-gray-600 shadow-sm z-50">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden bg-gradient-to-br from-orange-50 via-white to-red-50">
+      
+      {/* 背景動態光暈特效 */}
+      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-orange-200/30 blur-[80px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '8s' }}></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-red-200/30 blur-[100px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '10s' }}></div>
+
+      <button onClick={onExit} className="absolute top-6 left-6 p-2 rounded-full bg-white/50 hover:bg-white/80 transition text-slate-600 shadow-sm z-50 backdrop-blur-sm">
            <ArrowLeft size={24} />
       </button>
 
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-6 relative">
-        <button
-          onClick={onReset}
-          className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
-          title="清除暫存資料"
-        >
-          <Trash2 size={20} />
-        </button>
-
+      {/* 主卡片：Glassmorphism */}
+      <div className="w-full max-w-md bg-white/40 backdrop-blur-xl border border-white/50 shadow-2xl rounded-3xl p-8 space-y-6 relative z-10">
+        
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800">圖面標記估價</h1>
-          <p className="text-gray-500 text-sm mt-1">建立新專案 或 開啟舊專案</p>
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-700 mb-1 drop-shadow-sm">防火填塞估價</h1>
+          <p className="text-slate-500 text-sm font-medium tracking-wide">建立新專案 或 開啟舊專案</p>
         </div>
 
-        <div className="pb-4 border-b border-gray-100">
+        <div className="pb-4 border-b border-white/40">
           <button
             onClick={() => projectInputRef.current?.click()}
             disabled={!isZipLoaded}
-            className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200 transition disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-white/60 hover:bg-white/80 text-slate-700 py-3.5 rounded-2xl font-bold border border-white/50 shadow-sm transition-all disabled:opacity-50 active:scale-[0.98]"
           >
-            <FolderOpen size={20} />
+            <FolderOpen size={20} className="text-orange-500" />
             <span>開啟專案檔 (.siteproj)</span>
           </button>
           <input
@@ -155,10 +154,10 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">專案名稱 (新專案)</label>
+          <label className="block text-sm font-bold text-slate-600 mb-1.5 ml-1">專案名稱 (新專案)</label>
           <input
             type="text"
-            className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            className="w-full bg-white/50 border border-white/60 p-3.5 rounded-2xl focus:ring-2 focus:ring-orange-200/50 outline-none transition-all placeholder:text-slate-400"
             placeholder="例如：XX建案_B棟"
             value={projectInfo.name}
             onChange={(e) => setProjectInfo({ ...projectInfo, name: e.target.value })}
@@ -166,27 +165,27 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">匯入平面圖</label>
+          <label className="block text-sm font-bold text-slate-600 mb-1.5 ml-1">匯入平面圖</label>
           <div
             onClick={() => !isProcessing && fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition group ${
+            className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all group ${
                isProcessing 
-                 ? 'border-gray-200 bg-gray-50 cursor-wait' 
-                 : 'border-gray-300 hover:bg-blue-50 hover:border-blue-300'
+                 ? 'border-slate-200 bg-slate-50/50 cursor-wait' 
+                 : 'border-orange-200/50 hover:bg-orange-50/50 hover:border-orange-300/50 bg-white/30'
             }`}
           >
             {isProcessing ? (
               <div className="flex flex-col items-center py-2">
-                <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-2" />
-                <span className="text-sm text-gray-500 font-bold">正在處理檔案...</span>
+                <Loader2 className="w-8 h-8 text-orange-500 animate-spin mb-2" />
+                <span className="text-sm text-slate-500 font-bold">正在處理檔案...</span>
               </div>
             ) : (
               <>
-                <div className="bg-gray-100 p-3 rounded-full mb-2 group-hover:bg-white transition">
-                  <ImageIcon className="w-6 h-6 text-gray-500 group-hover:text-blue-500" />
+                <div className="bg-white/70 p-3.5 rounded-full mb-2 shadow-sm group-hover:scale-110 transition-transform">
+                  <ImageIcon className="w-6 h-6 text-slate-400 group-hover:text-orange-500 transition-colors" />
                 </div>
-                <span className="text-sm font-medium text-gray-600">點擊上傳 JPG/PNG/PDF</span>
-                <span className="text-xs text-gray-400 mt-1">PDF將自動轉換為圖片</span>
+                <span className="text-sm font-bold text-slate-600">點擊上傳 JPG/PNG/PDF</span>
+                <span className="text-xs text-slate-400 mt-1 font-medium">PDF將自動轉換為圖片</span>
               </>
             )}
             <input
@@ -201,10 +200,10 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
           </div>
         </div>
 
-        <div className="space-y-3 max-h-60 overflow-y-auto">
+        <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
           {projectInfo.floorPlans.map((plan, idx) => (
-            <div key={plan.id} className="flex items-center bg-white border border-gray-200 p-3 rounded-lg shadow-sm">
-              <div className="w-10 h-10 bg-gray-200 rounded overflow-hidden flex-shrink-0 mr-3">
+            <div key={plan.id} className="flex items-center bg-white/60 border border-white/60 p-2 rounded-xl shadow-sm">
+              <div className="w-10 h-10 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 mr-3 border border-white/50">
                 <img src={plan.src} className="w-full h-full object-cover" alt="preview" />
               </div>
               <div className="flex-1">
@@ -212,11 +211,11 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
                   value={plan.name}
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => onUpdatePlanName(idx, e.target.value)}
-                  className="w-full text-sm font-medium text-gray-800 border-b border-transparent focus:border-blue-500 outline-none bg-transparent"
+                  className="w-full text-sm font-bold text-slate-700 border-b border-transparent focus:border-orange-400 outline-none bg-transparent placeholder:font-normal"
                   placeholder="輸入圖說名稱"
                 />
               </div>
-              <button onClick={() => onRemovePlan(idx)} className="text-gray-400 hover:text-red-500 p-2 transition-colors">
+              <button onClick={() => onRemovePlan(idx)} className="text-slate-400 hover:text-red-500 p-2 transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -226,7 +225,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
         <button
           onClick={onStart}
           disabled={!projectInfo.name || projectInfo.floorPlans.length === 0 || isProcessing}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+          className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-orange-500/30 hover:shadow-orange-500/40 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
         >
           開始作業 / 儲存設定
         </button>

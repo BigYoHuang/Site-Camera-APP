@@ -578,11 +578,11 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
       await handleSaveProject();
       setTimeout(async () => {
         await dbService.clearAll();
-        onExit(); // 修改：呼叫 Props 傳入的退出函式
+        onExit(); 
       }, 500);
     } else {
       await dbService.clearAll();
-      onExit(); // 修改：呼叫 Props 傳入的退出函式
+      onExit(); 
     }
   };
 
@@ -704,7 +704,7 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
         onLoadProject={handleLoadProject}
         isZipLoaded={isZipLoaded}
         isPDFLoaded={isPDFLoaded} 
-        onExit={onExit} // 新增：傳遞退出
+        onExit={onExit} 
       />
     );
   }
@@ -713,9 +713,10 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
 
   return (
     <div className="fixed inset-0 bg-gray-900 flex flex-col overflow-hidden">
-      <div className="bg-white px-4 py-3 shadow-md z-20 flex items-center justify-between shrink-0">
+      {/* 頂部導覽列：Glassmorphism */}
+      <div className="bg-white/80 backdrop-blur-md border-b border-white/40 px-4 py-3 shadow-sm z-20 flex items-center justify-between shrink-0">
         <div className="flex flex-col min-w-0">
-          <span className="text-xs text-gray-500 font-bold truncate max-w-[150px]">
+          <span className="text-xs text-slate-500 font-bold truncate max-w-[150px]">
             {projectInfo.name}
           </span>
           <div className="relative inline-flex items-center gap-2">
@@ -725,7 +726,7 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                 onChange={(e) => {
                   setCurrentPlanIndex(Number(e.target.value));
                 }}
-                className="font-bold text-lg bg-transparent pr-6 outline-none appearance-none truncate max-w-[200px]"
+                className="font-bold text-lg bg-transparent pr-6 outline-none appearance-none truncate max-w-[200px] text-slate-800"
               >
                 {projectInfo.floorPlans.map((p, i) => (
                   <option key={p.id} value={i}>
@@ -733,12 +734,12 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-0 w-4 h-4 pointer-events-none text-gray-500" />
+              <ChevronDown className="absolute right-0 w-4 h-4 pointer-events-none text-slate-500" />
             </div>
 
             <button
               onClick={() => setShowAddPlanModal(true)}
-              className="text-blue-600 hover:text-blue-800 transition p-1"
+              className="text-orange-600 hover:text-orange-800 transition p-1"
               title="新增平面圖"
             >
               <PlusCircle size={24} />
@@ -751,7 +752,7 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
              onClick={handleSaveProject}
              disabled={!isZipLoaded}
              title="儲存專案檔 (.siteproj)"
-             className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition active:scale-95"
+             className="p-2.5 rounded-full bg-blue-100/50 text-blue-700 hover:bg-blue-200/50 border border-blue-200/50 backdrop-blur-sm transition-all active:scale-95"
           >
             <Save size={20} />
           </button>
@@ -760,8 +761,8 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
             onClick={handleExport}
             disabled={!isZipLoaded}
             title="匯出照片與報表"
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold shadow-sm active:scale-95 transition ${
-              isZipLoaded ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-500'
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold shadow-sm active:scale-95 transition backdrop-blur-sm ${
+              isZipLoaded ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-500'
             }`}
           >
             <Download size={18} />
@@ -771,7 +772,7 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
           <button
             onClick={handleExitClick}
             title="退出專案"
-            className="p-2 bg-gray-100 text-red-500 rounded-lg hover:bg-gray-200 transition active:scale-95"
+            className="p-2.5 rounded-full bg-rose-100/50 text-rose-700 hover:bg-rose-200/50 border border-rose-200/50 backdrop-blur-sm transition-all active:scale-95"
           >
             <LogOut size={20} />
           </button>
@@ -888,27 +889,27 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
         )}
       </div>
 
-      <div className="bg-white pb-safe pt-2 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-around items-center border-t shrink-0 z-20">
+      <div className="bg-white/80 backdrop-blur-md border-t border-white/40 pb-safe pt-2 px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-around items-center shrink-0 z-20">
         <button
           onClick={() => setMode('move')}
           className={`flex-1 flex flex-col items-center py-3 rounded-lg transition-all duration-200 ${
             mode === 'move'
-              ? 'bg-blue-50 text-blue-600 translate-y-[-2px]'
-              : 'text-gray-400'
+              ? 'text-blue-600 translate-y-[-2px] bg-blue-50/50'
+              : 'text-slate-400'
           }`}
         >
           <Move className={`mb-1 ${mode === 'move' ? 'scale-110' : ''}`} />
           <span className="text-xs font-bold">移動/縮放</span>
         </button>
 
-        <div className="w-px h-8 bg-gray-200 mx-2"></div>
+        <div className="w-px h-8 bg-slate-200 mx-2"></div>
 
         <button
           onClick={() => setMode('mark')}
           className={`flex-1 flex flex-col items-center py-3 rounded-lg transition-all duration-200 ${
             mode === 'mark'
-              ? 'bg-red-50 text-red-600 translate-y-[-2px]'
-              : 'text-gray-400'
+              ? 'text-red-600 translate-y-[-2px] bg-red-50/50'
+              : 'text-slate-400'
           }`}
         >
           <MousePointer2
@@ -946,10 +947,10 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
       />
 
       {showExitDialog && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">確認退出</h3>
-            <p className="text-gray-600 mb-6 text-sm">
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-[60] px-4 animate-fadeIn">
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-white/60 animate-slideUp">
+            <h3 className="text-xl font-bold mb-4 text-slate-800 text-center">確認退出</h3>
+            <p className="mb-6 text-slate-600 text-center text-sm leading-relaxed">
               您確定要結束目前的專案嗎？<br />
               若尚未儲存，所有進度將會遺失。
             </p>
@@ -957,20 +958,20 @@ const MapEstimatorApp: React.FC<{ onExit: () => void }> = ({ onExit }) => {
               <button 
                 onClick={() => handleConfirmExit(true)}
                 disabled={!isZipLoaded}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
               >
                 <Save size={18} />
                 儲存專案並退出
               </button>
               <button 
                 onClick={() => handleConfirmExit(false)}
-                className="w-full py-3 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-100 transition active:scale-95"
+                className="w-full py-3.5 bg-white/50 text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-xl font-bold transition-colors"
               >
                 不儲存直接退出
               </button>
               <button 
                 onClick={() => setShowExitDialog(false)}
-                className="w-full py-3 bg-gray-100 text-gray-600 rounded-lg font-bold hover:bg-gray-200 transition active:scale-95"
+                className="w-full py-3.5 text-slate-500 hover:text-slate-800 transition-colors text-sm"
               >
                 取消
               </button>
